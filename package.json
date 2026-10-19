@@ -12,10 +12,10 @@
     "shots:3d": "node scripts/shots-3d.mjs"
   },
   "dependencies": {
-    "next": "15.5.4",
+    "next": "^15.5.7",
     "polygon-clipping": "^0.15.7",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "^19.1.2",
+    "react-dom": "^19.1.2",
     "three": "^0.180.0"
   },
   "devDependencies": {
@@ -26,7 +26,7 @@
     "@types/react-dom": "^19",
     "@types/three": "^0.180.0",
     "eslint": "^9",
-    "eslint-config-next": "15.5.4",
+    "eslint-config-next": "^15.5.7",
     "playwright-core": "^1.56.1",
     "tailwindcss": "^4",
     "typescript": "^5",
