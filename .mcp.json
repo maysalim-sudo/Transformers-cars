@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "blender": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "C:/Users/Torinou/tools/blender_mcp/mcp",
+        "blender-mcp"
+      ],
+      "env": {
+        "BLENDER_MCP_HOST": "localhost",
+        "BLENDER_MCP_PORT": "9876"
+      }
+    }
+  }
+}

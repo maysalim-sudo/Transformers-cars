@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.*
+
+# Production / Builds
+dist/
+build/
+.next/
+.next-build/
+out/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Misc & System
+.DS_Store
+Thumbs.db
+*.pem
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment
+.env
+.env*.local
+.env.development
+.env.test
+.env.production
+!.env.example
+
+# Vercel
+.vercel
+
+# Blender backups & screenshot outputs
+*.blend1
+shots/

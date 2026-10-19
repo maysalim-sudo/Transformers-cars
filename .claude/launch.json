@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "garage-site",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "garage-site", "run", "dev", "--", "-p", "3100"],
+      "port": 3100
+    }
+  ]
+}
