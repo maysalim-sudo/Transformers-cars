@@ -1,28 +1,35 @@
 {
-  "name": "react-vite-tailwind",
+  "name": "garage-site",
+  "version": "0.1.0",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "shots": "node scripts/shots.mjs",
+    "shots:3d": "node scripts/shots-3d.mjs"
   },
   "dependencies": {
-    "clsx": "2.1.1",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "tailwind-merge": "3.4.0"
+    "next": "15.5.4",
+    "polygon-clipping": "^0.15.7",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "three": "^0.180.0"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "4.1.17",
-    "@types/node": "22.19.17",
-    "@types/react": "19.2.7",
-    "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "5.1.1",
-    "tailwindcss": "4.1.17",
-    "typescript": "5.9.3",
-    "vite": "7.3.2",
-    "vite-plugin-singlefile": "2.3.0"
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "^0.180.0",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.4",
+    "playwright-core": "^1.56.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }

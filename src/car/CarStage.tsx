@@ -1,150 +1,118 @@
-import { useEffect, useRef } from "react";
-import { CAR_H, CAR_PARTS, CAR_VIEWBOX, CAR_W, type PartDef } from "./parts";
-import { buildPartPaint, type Glass, type Paint } from "./paint";
+"use client";
 
-type Props = {
-  paint: Paint;
-  glass: Glass;
-  /** live value 0 → assembled, 1 → fully exploded (read every frame) */
-  targetRef?: { current: number };
-  /** static value when no scroll driving is needed */
-  value?: number;
-  showLabels?: boolean;
-  interactive?: boolean;
-  className?: string;
-};
+import type { CSSProperties, ReactNode } from "react";
+import { type Locale, pick } from "@/i18n/config";
+import { ArtProvider } from "./art/context";
+import { CarDefs } from "./art/Defs";
+import { sideArt } from "./art/side";
+import { sedanSide } from "./models/sideGeometry";
+import { finishVars, TRANSFORM_FINISH } from "./palette";
+import { parts, type VehiclePart } from "./registry";
 
-function LabelChip({ part }: { part: PartDef }) {
-  const dir = part.label ?? "up";
-  const pos: React.CSSProperties =
-    dir === "up"
-      ? { left: "50%", bottom: "26px", transform: "translateX(-50%)" }
-      : dir === "down"
-        ? { left: "50%", top: "26px", transform: "translateX(-50%)" }
-        : dir === "left"
-          ? { right: "26px", top: "50%", transform: "translateY(-50%)" }
-          : { left: "26px", top: "50%", transform: "translateY(-50%)" };
-  const stem: React.CSSProperties =
-    dir === "up"
-      ? { left: "50%", bottom: "10px", width: "1px", height: "16px" }
-      : dir === "down"
-        ? { left: "50%", top: "10px", width: "1px", height: "16px" }
-        : dir === "left"
-          ? { bottom: "50%", right: "10px", height: "1px", width: "16px" }
-          : { bottom: "50%", left: "10px", height: "1px", width: "16px" };
+const heroParts = parts.filter((p) => sideArt[p.id]).sort((a, b) => a.z - b.z);
+
+/** Hidden mechanicals look the same before and after: one layer, never wiped. */
+const noTwin = new Set(["engine", "transmission", "exhaust", "chassis_floor", "spring_front", "spring_rear"]);
+/** Tuned body sits lower on its coilovers. */
+const lowered = new Set<VehiclePart["group"]>(["body", "glass", "lighting", "aero"]);
+const STANCE_DROP = 7;
+
+const stock = TRANSFORM_FINISH.stock;
+const tuned = TRANSFORM_FINISH.tuned;
+
+function partStyle(p: VehiclePart): CSSProperties {
+  return {
+    "--z": p.z,
+    "--dx": p.explode.dx,
+    "--dy": p.explode.dy,
+    "--dz": p.explode.dz,
+    "--rot": p.explode.rot ?? 0,
+    "--s": p.start,
+    "--d": Math.max(0.01, p.end - p.start),
+  } as CSSProperties;
+}
+
+/** Wheels spin as the transformation beam passes. */
+function Spin({ id, children }: { id: string; children: ReactNode }) {
+  if (!id.startsWith("wheel_")) return <>{children}</>;
+  const cx = id.includes("front") ? sedanSide.wheel.front : sedanSide.wheel.rear;
   return (
-    <div
-      className="part-label pointer-events-none absolute z-10 hidden sm:block"
-      style={{
-        left: `${(part.anchor[0] / CAR_W) * 100}%`,
-        top: `${(part.anchor[1] / CAR_H) * 100}%`,
-        width: 0,
-        height: 0,
-      }}
+    <g
+      className="car-spin"
+      style={{ transformOrigin: `${cx}px ${sedanSide.wheel.cy}px`, transformBox: "view-box" } as CSSProperties}
     >
-      <span className="absolute -left-[3px] -top-[3px] block h-[6px] w-[6px] rounded-full bg-gold-300 shadow-[0_0_10px_2px_rgba(236,197,121,0.6)]" />
-      <span className="absolute bg-gold-300/50" style={stem} />
-      <span
-        className="absolute whitespace-nowrap rounded-[3px] border border-gold-300/30 bg-ink-950/80 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-gold-100 backdrop-blur-sm sm:text-[10px]"
-        style={pos}
-      >
-        {part.name}
-      </span>
-    </div>
+      {children}
+    </g>
   );
 }
 
-export default function CarStage({
-  paint,
-  glass,
-  targetRef,
-  value = 0,
-  showLabels = false,
-  interactive = true,
-  className = "",
-}: Props) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const shown = useRef(value);
-  const mouse = useRef({ x: 0, y: 0 });
-  const parts = [...CAR_PARTS].sort((a, b) => a.z - b.z);
-  const pp = buildPartPaint(paint, glass);
-
-  useEffect(() => {
-    let raf = 0;
-    const onMove = (e: PointerEvent) => {
-      const el = rootRef.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      if (r.bottom < 0 || r.top > window.innerHeight) return;
-      mouse.current.x = ((e.clientX - r.left) / Math.max(1, r.width) - 0.5) * 2;
-      mouse.current.y = ((e.clientY - r.top) / Math.max(1, r.height) - 0.5) * 2;
-    };
-    if (interactive) window.addEventListener("pointermove", onMove, { passive: true });
-
-    const tick = (t: number) => {
-      const tgt = targetRef ? targetRef.current : value;
-      shown.current += (tgt - shown.current) * 0.11;
-      if (Math.abs(tgt - shown.current) < 0.0004) shown.current = tgt;
-      const e = shown.current;
-      const sway = Math.sin(t / 2800) * 2.6;
-      const ry = interactive ? mouse.current.x * 15 + sway : 0;
-      const rx = interactive ? -mouse.current.y * 8 + e * 5 : e * 5;
-      const inner = innerRef.current;
-      if (inner) inner.style.transform = `rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) scale(${(1 - e * 0.1).toFixed(3)})`;
-      const root = rootRef.current;
-      if (root) root.style.setProperty("--e", e.toFixed(4));
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("pointermove", onMove);
-    };
-  }, [interactive, targetRef, value]);
-
+/**
+ * The exploding, transforming car. Its parent sets --e (explosion) and --tx (transformation);
+ * this component never re-renders on scroll. Each body part is drawn twice — stock and tuned —
+ * and --tx wipes one into the other behind a glowing beam.
+ */
+export function CarStage({ locale }: { locale: Locale }) {
   return (
-    <div
-      ref={rootRef}
-      className={`relative h-full w-full ${className}`}
-      style={{ ["--e" as string]: value, perspective: "1500px" }}
-    >
-      {/* floor glow / contact shadow */}
-      <div
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-[50%] blur-2xl"
-        style={{
-          bottom: "6%",
-          width: "72%",
-          height: "12%",
-          background:
-            "radial-gradient(50% 50% at 50% 50%, rgba(223,174,85,0.30), rgba(223,174,85,0.08) 55%, transparent 75%)",
-          transform: "translateX(-50%) scaleY(calc(1 - var(--e) * 0.45))",
-        }}
-      />
-      <div
-        ref={innerRef}
-        className="stage-3d absolute inset-0"
-        style={{ transform: "rotateX(0deg) rotateY(0deg)" }}
-      >
-        {parts.map((p) => (
-          <div
-            key={p.id}
-            className="absolute inset-0"
-            style={{
-              transform: `translate3d(calc(var(--e) * ${p.dx}px), calc(var(--e) * ${p.dy}px), calc(${p.z}px + var(--e) * ${p.dz}px))${p.rot ? ` rotate(calc(var(--e) * ${p.rot}deg))` : ""}`,
-              willChange: "transform",
-            }}
-          >
-            <svg
-              viewBox={CAR_VIEWBOX}
-              className="h-full w-full overflow-visible"
-              aria-hidden="true"
-            >
-              {p.draw(pp, p.id)}
+    <div className="car-frame" style={finishVars(stock.paint, stock.tint)} aria-hidden>
+      <ArtProvider value={{ prefix: "hero", wheel: stock.wheel, variant: "stock" }}>
+        <CarDefs />
+      </ArtProvider>
+      {/* the tuned gradients must live under the tuned finish variables */}
+      <div style={finishVars(tuned.paint, tuned.tint)}>
+        <ArtProvider value={{ prefix: "hero-t", wheel: tuned.wheel, variant: "tuned" }}>
+          <CarDefs />
+        </ArtProvider>
+      </div>
+      <div className="car-stage">
+        <div className="car-rig">
+          <div className="car-shadow">
+            <svg viewBox="0 0 1200 480">
+              <ellipse cx="600" cy="424" rx="560" ry="34" fill="url(#hero-floor)" />
+              <ellipse cx="600" cy="418" rx="500" ry="14" fill="url(#hero-shadow)" />
+              <ellipse cx="300" cy="418" rx="90" ry="8" fill="url(#hero-shadow)" />
+              <ellipse cx="915" cy="418" rx="90" ry="8" fill="url(#hero-shadow)" />
             </svg>
-            {showLabels && p.label ? <LabelChip part={p} /> : null}
           </div>
-        ))}
+          {heroParts.map((p) => {
+            const Art = sideArt[p.id];
+            const twin = !noTwin.has(p.id);
+            const drop = lowered.has(p.group) || p.id === "body_shell";
+            return (
+              <div key={p.id} className="car-part" style={partStyle(p)} data-part={p.id}>
+                <ArtProvider value={{ prefix: "hero", wheel: stock.wheel, variant: "stock" }}>
+                  <svg viewBox="0 0 1200 480" className={twin ? "car-stock" : undefined}>
+                    <Spin id={p.id}>
+                      <Art />
+                    </Spin>
+                  </svg>
+                </ArtProvider>
+                {twin && (
+                  <ArtProvider value={{ prefix: "hero-t", wheel: tuned.wheel, variant: "tuned" }}>
+                    <svg viewBox="0 0 1200 480" className="car-tuned" style={finishVars(tuned.paint, tuned.tint)}>
+                      <g transform={drop ? `translate(0 ${STANCE_DROP})` : undefined}>
+                        <Spin id={p.id}>
+                          <Art />
+                        </Spin>
+                      </g>
+                    </svg>
+                  </ArtProvider>
+                )}
+                {p.labelSide && (
+                  <span
+                    className="car-callout"
+                    style={{ left: `${(p.anchor[0] / 1200) * 100}%`, top: `${(p.anchor[1] / 480) * 100}%` }}
+                  >
+                    <span className="flex items-center gap-1.5 rounded-full border border-line-strong bg-ink-950/80 px-2 py-0.5 font-mono text-[max(9px,0.85cqw)] uppercase tracking-[0.14em] text-snow">
+                      <span className="size-1 rounded-full bg-accent" />
+                      {pick(p.callout ?? p.label, locale)}
+                    </span>
+                  </span>
+                )}
+              </div>
+            );
+          })}
+          <div className="car-beam" />
+        </div>
       </div>
     </div>
   );
