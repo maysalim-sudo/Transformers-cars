@@ -10,7 +10,8 @@
     ],
     "seconds": 60,
     "bpm": 100,
-    "keyscale": "A minor"
+    "keyscale": "A minor",
+    "pick": 101
   },
   {
     "id": "music_sting",
@@ -23,7 +24,8 @@
     ],
     "seconds": 8,
     "bpm": 100,
-    "keyscale": "A minor"
+    "keyscale": "A minor",
+    "pick": 11
   },
   {
     "id": "door_rattle",
@@ -34,7 +36,8 @@
       2,
       3
     ],
-    "seconds": 4
+    "seconds": 4,
+    "pick": 2
   },
   {
     "id": "engine_start",
@@ -45,7 +48,8 @@
       2,
       3
     ],
-    "seconds": 4
+    "seconds": 4,
+    "pick": 2
   },
   {
     "id": "lift",
@@ -56,7 +60,8 @@
       2,
       3
     ],
-    "seconds": 4
+    "seconds": 4,
+    "pick": 3
   },
   {
     "id": "wrench",
@@ -67,7 +72,8 @@
       2,
       3
     ],
-    "seconds": 2
+    "seconds": 2,
+    "pick": 3
   },
   {
     "id": "coil_settle",
@@ -78,7 +84,8 @@
       2,
       3
     ],
-    "seconds": 2
+    "seconds": 2,
+    "pick": 3
   },
   {
     "id": "panel",
@@ -89,7 +96,8 @@
       2,
       3
     ],
-    "seconds": 2
+    "seconds": 2,
+    "pick": 3
   },
   {
     "id": "weld",
@@ -100,7 +108,8 @@
       2,
       3
     ],
-    "seconds": 2
+    "seconds": 2,
+    "pick": 3
   },
   {
     "id": "fan_spin",
@@ -111,7 +120,8 @@
       2,
       3
     ],
-    "seconds": 4
+    "seconds": 4,
+    "pick": 3
   },
   {
     "id": "squeegee",
@@ -122,7 +132,8 @@
       2,
       3
     ],
-    "seconds": 2
+    "seconds": 2,
+    "pick": 3
   },
   {
     "id": "whoosh",
@@ -133,7 +144,8 @@
       2,
       3
     ],
-    "seconds": 3
+    "seconds": 3,
+    "pick": 3
   },
   {
     "id": "cover_swoosh",
@@ -144,7 +156,8 @@
       2,
       3
     ],
-    "seconds": 3
+    "seconds": 3,
+    "pick": 2
   },
   {
     "id": "spot",
@@ -155,7 +168,8 @@
       2,
       3
     ],
-    "seconds": 2
+    "seconds": 2,
+    "pick": 3
   },
   {
     "id": "rev",
@@ -166,7 +180,8 @@
       2,
       3
     ],
-    "seconds": 4
+    "seconds": 4,
+    "pick": 3
   },
   {
     "id": "street",
@@ -177,7 +192,8 @@
       2,
       3
     ],
-    "seconds": 10
+    "seconds": 10,
+    "pick": 3
   },
   {
     "id": "engine_loop",
@@ -188,7 +204,8 @@
       2,
       3
     ],
-    "seconds": 6
+    "seconds": 6,
+    "pick": 3
   },
   {
     "id": "room_tone",
@@ -199,7 +216,8 @@
       2,
       3
     ],
-    "seconds": 10
+    "seconds": 10,
+    "pick": 3
   },
   {
     "id": "spray",
@@ -210,6 +228,7 @@
       2,
       3
     ],
-    "seconds": 6
+    "seconds": 6,
+    "pick": 3
   }
 ]
