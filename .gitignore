@@ -53,3 +53,5 @@ next-env.d.ts
 /art/comfy/out/
 /art/garage-review/
 *.blend1
+/art/garage-stills/
+/art/garage-bake/
