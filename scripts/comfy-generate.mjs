@@ -1,5 +1,5 @@
 // Queue garage assets on the local ComfyUI and download the results.
-// usage: node scripts/comfy-generate.mjs <art/comfy/prompts.json | audio.json> [--only <id>]
+// usage: node scripts/comfy-generate.mjs <art/comfy/prompts.json | audio.json> [--only <id>] [--workflow <name>]
 //   Each entry: { id, workflow, prompt, negative?, seeds: number[], width?, height?, seconds?, bpm?, keyscale?, upscale? }.
 //   The workflow (art/comfy/workflows/<workflow>.json, API format) is patched through nodes titled
 //   PROMPT, NEGATIVE, SEED, SIZE (width/height or seconds). Results land in art/comfy/out/<id>-<seed>.<ext>.
@@ -10,6 +10,7 @@ const COMFY = process.env.COMFY_URL ?? "http://127.0.0.1:8188";
 const args = process.argv.slice(2);
 const file = args.find((a) => !a.startsWith("--"));
 const only = args.includes("--only") ? args[args.indexOf("--only") + 1] : null;
+const workflow = args.includes("--workflow") ? args[args.indexOf("--workflow") + 1] : null;
 if (!file) throw new Error("usage: node scripts/comfy-generate.mjs <prompts.json> [--only <id>]");
 const root = path.dirname(path.dirname(file)) === "art" ? "art/comfy" : path.dirname(file);
 const out = path.join(root, "out");
@@ -49,7 +50,7 @@ async function upscale(buf, name) {
   return (await run(wf))[0];
 }
 
-const entries = JSON.parse(readFileSync(file, "utf8")).filter((e) => !only || e.id === only);
+const entries = JSON.parse(readFileSync(file, "utf8")).filter((e) => (!only || e.id === only) && (!workflow || e.workflow === workflow));
 for (const e of entries) {
   for (const seed of e.seeds) {
     const wf = JSON.parse(readFileSync(path.join(root, `workflows/${e.workflow}.json`), "utf8"));
@@ -60,6 +61,8 @@ for (const e of entries) {
     const size = byTitle(wf, "SIZE")?.inputs;
     if (size && e.width) Object.assign(size, { width: e.width, height: e.height });
     if (size && e.seconds) size.seconds = e.seconds;
+    // Stable Audio also conditions on the clip length
+    for (const n of Object.values(wf)) if (e.seconds && n.inputs.seconds_total !== undefined) n.inputs.seconds_total = e.seconds;
     // text-to-audio encoders carry their own seed, length, tempo and key
     const enc = byTitle(wf, "PROMPT").inputs;
     if (enc.seed !== undefined) enc.seed = seed;

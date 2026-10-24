@@ -9,6 +9,7 @@ import { type AnchorId, heroCar } from "../heroCar";
 import type { GarageState } from "../timeline";
 import { type RiggedCar, rigCar } from "./car";
 import { createEffects, type Effects } from "./effects";
+import { createFrameProbe } from "./probe";
 import { loadWorld, type World } from "./world";
 
 export type Garage = {
@@ -25,8 +26,6 @@ export type Garage = {
 const EXPOSURE = 0.72;
 /** the site background matches the Blender world (deep night blue) */
 const NIGHT = new THREE.Color().setRGB(0.006, 0.009, 0.02);
-const SLOW_MS = 45;
-const PROBE_MS = 2000;
 
 export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; reduced?: boolean }): Garage {
   const { phone, reduced = false } = opts;
@@ -72,10 +71,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
     renderer.compile(scene, camera);
   })();
 
-  // frame-time probe: if the first 2 s after ready average over 45 ms a frame, fall back to stills
-  let probeStart = 0;
-  let probeFrames = 0;
-  let probed = false;
+  const probe = createFrameProbe();
   let lastFrame = 0;
 
   const onContextLost = (e: Event) => {
@@ -105,16 +101,8 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
     },
     render() {
       if (!car) return;
-      const t0 = performance.now();
       composer.render();
-      if (probed) return;
-      if (!probeStart) probeStart = t0;
-      probeFrames++;
-      const elapsed = performance.now() - probeStart;
-      if (elapsed >= PROBE_MS) {
-        probed = true;
-        if (elapsed / probeFrames > SLOW_MS) slow.forEach((cb) => cb());
-      }
+      if (probe.frame(performance.now()) === "slow") slow.forEach((cb) => cb());
     },
     project(id) {
       if (!car) return { x: 0, y: 0, visible: false };

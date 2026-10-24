@@ -1,15 +1,16 @@
 """Pack garage images for the web.
 
 usage:
-  python3 -I scripts/pack-assets.py <src> <dest.webp> --max <px> [--quality 82] [--tile] [--smooth]
+  python3 -I scripts/pack-assets.py <src> <dest.webp> --max <px> [--quality 82] [--tile] [--smooth] [--denoise]
   python3 -I scripts/pack-assets.py --sheet <dir> <dest.jpg>
 
 --max   longest side in pixels after resizing (never upscales)
+--denoise remove render grain with ffmpeg's non-local means (for Cycles stills from a build with no denoiser)
 --smooth  remove bake grain (median 3 px, then gaussian 1.5 px): for lightmaps, which carry only soft light
 --tile  make the image tile seamlessly: blend each edge with the opposite one (half-offset crossfade)
 --sheet contact sheet of every PNG in <dir>, labelled with the file name, for picking candidates
 """
-import sys
+import subprocess, sys, tempfile
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter
@@ -33,8 +34,15 @@ def make_tileable(img: Image.Image) -> Image.Image:
     return Image.composite(img, shifted, mask)
 
 
-def pack(src: str, dest: str, max_px: int, quality: int, tile: bool, smooth: bool = False) -> None:
-    img = Image.open(src).convert("RGB")
+def denoised(src: str) -> Image.Image:
+    with tempfile.TemporaryDirectory() as tmp:
+        out = str(Path(tmp) / "dn.png")
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", src, "-vf", "nlmeans=s=3.5:p=7:r=15", out], check=True)
+        return Image.open(out).convert("RGB")
+
+
+def pack(src: str, dest: str, max_px: int, quality: int, tile: bool, smooth: bool = False, denoise: bool = False) -> None:
+    img = denoised(src) if denoise else Image.open(src).convert("RGB")
     if smooth:
         img = img.filter(ImageFilter.MedianFilter(3)).filter(ImageFilter.GaussianBlur(1.5))
     if tile:
@@ -71,4 +79,4 @@ if __name__ == "__main__":
         sheet(a[1], a[2])
     else:
         opt = lambda k, d: a[a.index(k) + 1] if k in a else d
-        pack(a[0], a[1], int(opt("--max", "2048")), int(opt("--quality", "82")), "--tile" in a, "--smooth" in a)
+        pack(a[0], a[1], int(opt("--max", "2048")), int(opt("--quality", "82")), "--tile" in a, "--smooth" in a, "--denoise" in a)

@@ -101,6 +101,15 @@ describe("garage timeline", () => {
     expect({ ...port, camera: null }).toEqual({ ...land, camera: null });
   });
 
+  it("keeps the camera inside the side walls once it is past the door, on every screen shape", () => {
+    for (const portrait of [false, true]) {
+      for (let i = 0; i <= 1000; i++) {
+        const [x, , z] = stateAt(i / 1000, { portrait }).camera.pos;
+        if (x < layout.door) expect(Math.abs(z), `p=${i / 1000} portrait=${portrait}`).toBeLessThanOrEqual(layout.hall.halfWidth - 0.5);
+      }
+    }
+  });
+
   it("spins the wheels by the distance driven", () => {
     for (const p of [0, 0.1, 0.3, 0.95]) {
       const s = stateAt(p, { wheelRadius: 0.4 });

@@ -2,7 +2,7 @@
 Arrival (stock car at the door), Paint (mid-sweep: the front half amber) and Reveal (tuned car on the
 turntable, rig lights on, cover gone), each 16:9 (1920x1080) and 9:16 (1080x1920), from the same camera keys
 as src/garage/timeline.ts. Writes art/garage-stills/still_<name>_<aspect>.png; pack-assets.py makes the WebPs.
-ARGS: samples=<n> (default 48), shots=arrival,paint,reveal, aspects=16x9,9x16"""
+ARGS: samples=<n> (default 160), shots=arrival,paint,reveal, aspects=16x9,9x16"""
 import math, os
 import bpy
 from mathutils import Vector
@@ -12,7 +12,8 @@ scene = bpy.data.scenes["Garage"]
 bpy.context.window.scene = scene
 out = os.path.join(ROOT, "art", "garage-stills")
 os.makedirs(out, exist_ok=True)
-samples = int(ARGS.get("samples", "48"))
+# this Blender build has no denoiser: render more samples, pack-assets.py --denoise does the rest
+samples = int(ARGS.get("samples", "160"))
 
 
 def W(x, y, z):
@@ -138,7 +139,6 @@ scene.camera = cam
 scene.render.engine = "CYCLES"
 scene.cycles.device = "CPU"
 scene.cycles.samples = samples
-scene.cycles.use_denoising = True
 scene.view_settings.view_transform = "AgX"
 scene.render.image_settings.file_format = "PNG"
 
@@ -155,7 +155,10 @@ for name in ARGS.get("shots", "arrival,paint,reveal").split(","):
         o = (off[0] * 1.45, off[1] * 1.15 + 0.3, off[2] * 1.45) if portrait else off
         scene.render.resolution_x, scene.render.resolution_y = (1080, 1920) if portrait else (1920, 1080)
         cam_data.angle_y = math.radians(52 if portrait else 36)
-        cam.location = W(x + o[0], o[1], o[2])
+        # past the door, half a metre inside the side walls, as in timeline.ts
+        wall = L["hall"]["halfWidth"] - 0.5
+        cz = max(-wall, min(wall, o[2])) if x + o[0] < L["door"] else o[2]
+        cam.location = W(x + o[0], o[1], cz)
         cam.rotation_euler = (W(x + look[0], look[1], look[2]) - cam.location).to_track_quat("-Z", "Y").to_euler()
         scene.render.filepath = os.path.join(out, f"still_{name}_{aspect}.png")
         bpy.ops.render.render(write_still=True, scene=scene.name)

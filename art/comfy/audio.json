@@ -3,7 +3,11 @@
     "id": "music_bed",
     "workflow": "music_ace15",
     "prompt": "instrumental, minimal cinematic electronic, deep warm sub bass, clean tight percussion, soft analog synth pads, premium automotive showroom, confident, sleek, no vocals",
-    "seeds": [101, 202, 303],
+    "seeds": [
+      101,
+      202,
+      303
+    ],
     "seconds": 60,
     "bpm": 100,
     "keyscale": "A minor"
@@ -12,9 +16,200 @@
     "id": "music_sting",
     "workflow": "music_ace15",
     "prompt": "instrumental, short cinematic rising hit and impact, deep sub drop, bright synth shimmer tail, reveal moment, no vocals",
-    "seeds": [11, 22, 33],
+    "seeds": [
+      11,
+      22,
+      33
+    ],
     "seconds": 8,
     "bpm": 100,
     "keyscale": "A minor"
+  },
+  {
+    "id": "door_rattle",
+    "workflow": "sfx_stable_audio",
+    "prompt": "metal roller shutter garage door opening, rattling steel slats rolling up, close recording",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 4
+  },
+  {
+    "id": "engine_start",
+    "workflow": "sfx_stable_audio",
+    "prompt": "car engine starting, starter motor crank then V6 engine catches and idles, close recording",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 4
+  },
+  {
+    "id": "lift",
+    "workflow": "sfx_stable_audio",
+    "prompt": "hydraulic car lift raising, electric pump motor hum and hydraulic hiss, workshop",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 4
+  },
+  {
+    "id": "wrench",
+    "workflow": "sfx_stable_audio",
+    "prompt": "pneumatic impact wrench on a wheel nut, short burst, garage workshop",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 2
+  },
+  {
+    "id": "coil_settle",
+    "workflow": "sfx_stable_audio",
+    "prompt": "car suspension springs compressing, metallic coil creak and a soft thump as the car settles",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 2
+  },
+  {
+    "id": "panel",
+    "workflow": "sfx_stable_audio",
+    "prompt": "car body panel clicking into place, plastic bumper clips snapping, solid thud",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 2
+  },
+  {
+    "id": "weld",
+    "workflow": "sfx_stable_audio",
+    "prompt": "short electric welding arc crackle and sizzle, single burst",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 2
+  },
+  {
+    "id": "fan_spin",
+    "workflow": "sfx_stable_audio",
+    "prompt": "paint booth extraction fan spinning up, large industrial fan whoosh rising",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 4
+  },
+  {
+    "id": "squeegee",
+    "workflow": "sfx_stable_audio",
+    "prompt": "squeegee wiping window film on car glass, single smooth rubber swipe",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 2
+  },
+  {
+    "id": "whoosh",
+    "workflow": "sfx_stable_audio",
+    "prompt": "deep cinematic whoosh, lights powering down, dark transition",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 3
+  },
+  {
+    "id": "cover_swoosh",
+    "workflow": "sfx_stable_audio",
+    "prompt": "large satin car cover pulled off quickly, fabric swoosh and flutter",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 3
+  },
+  {
+    "id": "spot",
+    "workflow": "sfx_stable_audio",
+    "prompt": "heavy stage spotlight switching on, solid electrical clunk with a short hum",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 2
+  },
+  {
+    "id": "rev",
+    "workflow": "sfx_stable_audio",
+    "prompt": "sports car engine revving twice, deep exhaust burble, close recording",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 4
+  },
+  {
+    "id": "street",
+    "workflow": "sfx_stable_audio",
+    "prompt": "quiet city street at night, distant traffic, light wind, ambience loop",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 10
+  },
+  {
+    "id": "engine_loop",
+    "workflow": "sfx_stable_audio",
+    "prompt": "car engine idling steadily, smooth low rumble, constant, loop",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 6
+  },
+  {
+    "id": "room_tone",
+    "workflow": "sfx_stable_audio",
+    "prompt": "quiet clean workshop room tone, faint ventilation hum, constant, loop",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 10
+  },
+  {
+    "id": "spray",
+    "workflow": "sfx_stable_audio",
+    "prompt": "paint spray gun spraying continuously, steady air hiss, constant",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seconds": 6
   }
 ]

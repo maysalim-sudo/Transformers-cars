@@ -106,6 +106,10 @@ const cams: Key[] = [
 // tall screens: same shots from further back and a little higher, so the car still fits the width
 const portraitCams: Key[] = cams.map(([p, o, l]) => [p, [o[0] * 1.45, o[1] * 1.15 + 0.3, o[2] * 1.45], l]);
 
+/** Past the door, keep the camera half a metre inside the side walls (wider portrait offsets would pass them). */
+const WALL_Z = layout.hall.halfWidth - 0.5;
+const insideWalls = (x: number, z: number) => (x < layout.door ? Math.max(-WALL_Z, Math.min(WALL_Z, z)) : z);
+
 function cameraAt(keys: Key[], p: number): { offset: Vec3; look: Vec3 } {
   let i = 1;
   while (i < keys.length - 1 && p > keys[i][0]) i++;
@@ -158,7 +162,7 @@ export function stateAt(p: number, opts: { portrait?: boolean; wheelRadius?: num
     tableTurn: Math.PI * ss(0.9, 1, p),
     headlights: flashing ? (Math.sin((p - 0.93) * 260) > 0 ? 1 : 0) : p >= 0.955 ? 1 : 0,
     camera: {
-      pos: [carX + cam.offset[0], cam.offset[1] + lift * 0.3, cam.offset[2]],
+      pos: [carX + cam.offset[0], cam.offset[1] + lift * 0.3, insideWalls(carX + cam.offset[0], cam.offset[2])],
       look: [carX + cam.look[0], cam.look[1] + lift * 0.5, cam.look[2]],
     },
   };
