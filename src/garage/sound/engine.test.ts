@@ -123,6 +123,19 @@ describe("sound engine", () => {
     expect(a.sources.filter((s) => s.file === MUSIC.sting).length).toBe(2);
   });
 
+  it("settles quietly when the visitor leaves while the files are still loading", async () => {
+    const a = fakeAudio();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const engine = createSoundEngine("/garage/audio/", { ...a.deps, load: async (url) => (await gate, a.deps.load(url)) });
+    const enabling = engine.enable();
+    await Promise.resolve();
+    engine.dispose();
+    release();
+    await expect(enabling).resolves.toBeUndefined();
+    expect(a.sources.filter((s) => s.started && !s.stopped)).toEqual([]);
+  });
+
   it("fades out on disable and stops everything on dispose", async () => {
     const a = fakeAudio();
     const engine = createSoundEngine("/garage/audio/", a.deps);

@@ -71,15 +71,18 @@ export function createSoundEngine(base = "/garage/audio/", deps: Deps = {}): Sou
   }
 
   async function loadAll() {
+    const own = ctx!;
     await Promise.all(
       files.map(async (f) => {
         try {
-          buffers.set(f, await ctx!.decodeAudioData(await load(base + f)));
+          buffers.set(f, await own.decodeAudioData(await load(base + f)));
         } catch {
           // a missing or broken file leaves its cue silent; the rest still plays
         }
       }),
     );
+    // the visitor left (dispose) while the files were loading: start nothing
+    if (ctx !== own) return;
     for (const def of loops) {
       if (!buffers.has(def.file)) continue;
       const { src, gain } = source(def.file, true, 0);

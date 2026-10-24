@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AnchorId } from "@/garage/heroCar";
 import type { Garage } from "@/garage/scene";
 import { createSoundEngine, type SoundEngine } from "@/garage/sound/engine";
+import { follow } from "@/garage/scroll";
 import { type GarageState, stateAt } from "@/garage/timeline";
 import { garage as shop } from "@/config/garage";
 import type { Locale } from "@/i18n/config";
@@ -74,17 +75,13 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
   useEffect(() => {
     if (!readSoundPref()) return;
     setSoundOn(true);
-    const first = () => {
-      removeEventListener("pointerdown", first);
-      removeEventListener("keydown", first);
-      void enableSound();
-    };
-    addEventListener("pointerdown", first);
-    addEventListener("keydown", first);
-    return () => {
-      removeEventListener("pointerdown", first);
-      removeEventListener("keydown", first);
-    };
+    // a touch pointerdown is not a gesture that may start audio; click, pointerup and keydown are.
+    // enable() resolves only once the context is running, so keep listening until it does
+    const events = ["click", "pointerup", "keydown"] as const;
+    const stop = () => events.forEach((e) => removeEventListener(e, first));
+    const first = () => void enableSound().then(stop);
+    events.forEach((e) => addEventListener(e, first));
+    return stop;
   }, []);
 
   useEffect(() => () => sound.current?.dispose(), []);
@@ -127,7 +124,8 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
           if (!el) return;
           const on = i === s.bay;
           el.dataset.on = on ? "1" : "0";
-          el.inert = !on;
+          // hidden cards stay in the accessibility tree (all the copy is readable), but out of the tab order
+          el.querySelectorAll("a, button").forEach((c) => ((c as HTMLElement).tabIndex = on ? 0 : -1));
         });
         lastBay = s.bay;
       }
@@ -156,13 +154,16 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
 
     let lastT = performance.now();
     let soundP: number | null = null;
+    // null after a pause: the first frame back snaps to wherever the visitor scrolled meanwhile
+    let lastTarget: number | null = null;
     const tick = (now: number) => {
       const dt = Math.min((now - lastT) / 1000, 0.1);
       lastT = now;
       const target = readP();
-      const prev = p;
-      p = reduced ? target : p + (target - p) * (1 - Math.pow(0.0015, dt));
-      if (Math.abs(target - p) < 1e-5) p = target;
+      const step = follow(p, target, lastTarget, dt, reduced);
+      lastTarget = target;
+      p = step.p;
+      if (step.jumped) soundP = null;
       const s = stateAt(p, { portrait: portrait() });
       overlays(s, p);
       if (live && scene) {
@@ -170,11 +171,12 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
         scene.render();
       }
       // the stills show a parked car: no engine note in still mode
-      sound.current?.frame(soundP ?? prev, p, live ? s : { ...s, carSpeed: 0 });
+      sound.current?.frame(soundP, p, live ? s : { ...s, carSpeed: 0 });
       soundP = p;
       raf = visible && !document.hidden ? requestAnimationFrame(tick) : 0;
       if (!raf) {
         soundP = null;
+        lastTarget = null;
         sound.current?.suspend();
       }
     };
@@ -276,7 +278,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
             key={id}
             ref={(el) => void (callouts.current[i] = el)}
             data-on="0"
-            className="pointer-events-none absolute start-0 top-0 opacity-0 transition-opacity duration-300 data-[on=1]:opacity-100"
+            className="pointer-events-none absolute left-0 top-0 opacity-0 transition-opacity duration-300 data-[on=1]:opacity-100"
             aria-hidden
           >
             <span className="absolute -start-1.5 -top-1.5 size-3 rounded-full bg-accent-strong shadow-[0_0_0_5px_rgba(240,176,78,.18),0_0_18px_var(--accent)]" />
@@ -350,8 +352,8 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
             {i === g.bays.length - 1 && (
               <>
                 {/* the spec sheet repeats the callouts; on phones it would hide the car the reveal is about */}
-                <p className="mt-5 hidden font-mono text-[10px] uppercase tracking-[0.24em] text-mist sm:block">{g.spec.title}</p>
-                <dl className="mt-2 hidden border-t sm:block border-line text-[13px]">
+                <p className="sr-only mt-5 font-mono text-[10px] uppercase tracking-[0.24em] text-mist sm:not-sr-only sm:block">{g.spec.title}</p>
+                <dl className="sr-only mt-2 border-t sm:not-sr-only sm:block border-line text-[13px]">
                   {g.spec.rows.map((r) => (
                     <div key={r.label} className="flex justify-between border-b border-line py-1.5">
                       <dt className="text-mist">{r.label}</dt>
