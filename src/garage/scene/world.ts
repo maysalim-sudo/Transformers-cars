@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import layout from "../layout.json";
 import type { GarageState } from "../timeline";
+import { applySurfaces } from "./surfaces";
 
 export type MovingNode = "door" | "lift_arms" | "gantry" | "turntable" | "cover";
 
@@ -17,6 +18,37 @@ const BASE = "/garage/";
 const DOOR_TRAVEL = 3.4;
 const LIFT_HEIGHT = 0.55;
 const SPOT_POWER = 95;
+const SHAFT_ALPHA = 0.045;
+
+/** a soft beam of light in hazy air, from a spot down to the floor: additive, brightest at the lamp */
+function shaftMaterial() {
+  return new THREE.ShaderMaterial({
+    uniforms: { intensity: { value: 0 }, color: { value: new THREE.Color("#ffe9c8") } },
+    vertexShader: /* glsl */ `
+      varying float vAlong;
+      varying float vEdge;
+      void main() {
+        vAlong = uv.y;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vec3 n = normalize(normalMatrix * normal);
+        vEdge = abs(dot(n, normalize(-mv.xyz)));
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform float intensity;
+      uniform vec3 color;
+      varying float vAlong;
+      varying float vEdge;
+      void main() {
+        float a = intensity * pow(vAlong, 1.6) * pow(vEdge, 2.0);
+        gl_FragColor = vec4(color * a, a);
+      }`,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+  });
+}
 
 async function loadLightmap(name: string): Promise<THREE.Texture | null> {
   try {
@@ -69,6 +101,7 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
     }
     mesh.material = clones.get(key)!;
   });
+  const surfaces = await applySurfaces(root);
 
   const nodes: World["nodes"] = {};
   for (const name of ["door", "lift_arms", "gantry", "turntable", "cover"] as const) {
@@ -112,6 +145,26 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
     }
     spots.push(s);
   }
+  // visible beams under the rig, so the reveal reads as a lit stage in hazy air
+  const shaftMats: THREE.ShaderMaterial[] = [];
+  const shaftGeos: THREE.BufferGeometry[] = [];
+  const down = new THREE.Vector3(0, -1, 0);
+  for (const s of spots) {
+    const dir = s.target.position.clone().sub(s.position);
+    const length = dir.length();
+    const g = new THREE.ConeGeometry(Math.tan(s.angle * 0.8) * length, length, 32, 1, true);
+    g.translate(0, -length / 2, 0); // apex at the lamp
+    const m = shaftMaterial();
+    const shaft = new THREE.Mesh(g, m);
+    shaft.position.copy(s.position);
+    shaft.quaternion.setFromUnitVectors(down, dir.normalize());
+    shaft.renderOrder = 2;
+    scene.add(shaft);
+    shaftMats.push(m);
+    shaftGeos.push(g);
+    owned.push(m);
+    lights.push(shaft as unknown as THREE.Light);
+  }
   // each lens gets its own material so the lights can come on one by one
   const lenses: THREE.MeshStandardMaterial[] = [];
   for (let i = 0; i < layout.rig.count; i++) {
@@ -145,11 +198,14 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
       boothPanels.forEach((m, i) => (m.emissiveIntensity = boothBase[i] * (1 + s.boothLight * 2.5)));
       spots.forEach((l, i) => (l.intensity = s.showLights[i] * SPOT_POWER));
       lenses.forEach((m, i) => m && (m.emissiveIntensity = s.showLights[i] * 8));
+      shaftMats.forEach((m, i) => (m.uniforms.intensity.value = s.showLights[i] * SHAFT_ALPHA));
     },
     dispose() {
       mixer.stopAllAction();
       root.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
       owned.forEach((m) => m.dispose());
+      shaftGeos.forEach((g) => g.dispose());
+      surfaces.dispose();
       lights.forEach((l) => l.removeFromParent());
       Object.values(maps).forEach((t) => t?.dispose());
     },

@@ -9,6 +9,8 @@ import { type AnchorId, heroCar } from "../heroCar";
 import type { GarageState } from "../timeline";
 import { type RiggedCar, rigCar } from "./car";
 import { createEffects, type Effects } from "./effects";
+import { createGradePass } from "./grade";
+import { createGrounding, type Grounding } from "./grounding";
 import { createFrameProbe } from "./probe";
 import { loadWorld, type World } from "./world";
 
@@ -39,6 +41,8 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
 
   const scene = new THREE.Scene();
   scene.background = NIGHT;
+  // a little haze: far walls recede and the light reads as air, not a void
+  scene.fog = new THREE.FogExp2(new THREE.Color().setRGB(0.012, 0.016, 0.028), 0.016);
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environment = env;
@@ -50,10 +54,13 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
   const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.25, 0.08, 0.98);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
+  const grade = createGradePass(reduced);
+  composer.addPass(grade.pass);
 
   let world: World | null = null;
   let car: RiggedCar | null = null;
   let effects: Effects | null = null;
+  let grounding: Grounding | null = null;
   let size = { w: 1, h: 1 };
   let disposed = false;
   const slow: (() => void)[] = [];
@@ -68,6 +75,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
     car.group.traverse((o) => ((o as THREE.Mesh).isMesh && ((o.castShadow = true), (o.receiveShadow = true))));
     scene.add(car.group);
     effects = createEffects(scene, car, reduced);
+    grounding = createGrounding(scene, car, phone);
     renderer.compile(scene, camera);
   })();
 
@@ -86,7 +94,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
   return {
     ready,
     apply(s) {
-      if (!world || !car || !effects) return;
+      if (!world || !car || !effects || !grounding) return;
       const now = performance.now();
       const dt = lastFrame ? Math.min((now - lastFrame) / 1000, 0.05) : 0;
       lastFrame = now;
@@ -95,12 +103,14 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       car.apply(s);
       world.apply(s, { carX: s.carX, carLength: car.length });
       effects.apply(s, car, dt);
+      grounding.apply(s);
       renderer.toneMappingExposure = EXPOSURE * (1 - s.transition * 0.95);
       camera.position.set(...s.camera.pos);
       camera.lookAt(look.set(...s.camera.look));
     },
     render() {
       if (!car) return;
+      grade.tick(performance.now() / 1000);
       composer.render();
       if (probe.frame(performance.now()) === "slow") slow.forEach((cb) => cb());
     },
@@ -115,6 +125,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       size = { w, h };
       renderer.setSize(w, h, false);
       composer.setSize(w, h);
+      grade.resize(w, h);
       bloom.resolution.set(phone ? w / 2 : w, phone ? h / 2 : h);
       camera.aspect = w / h;
       camera.fov = portrait ? 52 : 36;
@@ -126,6 +137,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       disposed = true;
       canvas.removeEventListener("webglcontextlost", onContextLost);
       effects?.dispose();
+      grounding?.dispose();
       car?.dispose();
       world?.dispose();
       env.dispose();
