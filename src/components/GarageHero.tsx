@@ -193,8 +193,11 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
     io.observe(trackEl);
     const onVisibility = () => start();
     document.addEventListener("visibilitychange", onVisibility);
-    const onResize = () => scene?.resize(innerWidth, innerHeight, portrait());
-    addEventListener("resize", onResize);
+    // size the scene to the canvas box, not the window: a classic scrollbar makes them differ, which
+    // would squash the scene and shift the callouts (and appearing scrollbars fire no window resize)
+    const onResize = () => scene?.resize(canvasEl.clientWidth || innerWidth, canvasEl.clientHeight || innerHeight, portrait());
+    const ro = new ResizeObserver(onResize);
+    ro.observe(canvasEl);
 
     // first paint is the still; jump straight to where the visitor already is (deep link, reload)
     p = readP();
@@ -224,7 +227,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
       cancelAnimationFrame(raf);
       io.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
-      removeEventListener("resize", onResize);
+      ro.disconnect();
       scene?.dispose();
     };
   }, []);
@@ -286,17 +289,17 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
         ))}
 
         {/* job card; on phones a thin row of six segments, so it does not cover the car */}
-        <ol className="absolute inset-x-4 top-[4.5rem] z-10 flex gap-1.5 sm:inset-x-auto sm:end-8 sm:top-24 sm:block sm:w-56 sm:rounded-xl sm:border sm:border-line sm:bg-ink-900/75 sm:p-4 sm:text-[13px] sm:backdrop-blur-md">
-          <li className="sr-only mb-2 font-mono text-[10px] uppercase tracking-[0.24em] text-mist sm:not-sr-only sm:block">{g.jobCard.title}</li>
+        <ol className="absolute inset-x-4 top-[4.5rem] z-10 flex gap-1.5 roomy:inset-x-auto roomy:end-8 roomy:top-24 roomy:block roomy:w-56 roomy:rounded-xl roomy:border roomy:border-line roomy:bg-ink-900/75 roomy:p-4 roomy:text-[13px] roomy:backdrop-blur-md">
+          <li className="sr-only mb-2 font-mono text-[10px] uppercase tracking-[0.24em] text-mist roomy:not-sr-only roomy:block">{g.jobCard.title}</li>
           {g.jobCard.items.map((item, i) => (
             <li
               key={item}
               ref={(el) => void (jobs.current[i] = el)}
               data-state="todo"
-              className="group h-1 flex-1 rounded-full bg-white/20 data-[state=active]:bg-accent/60 data-[state=done]:bg-accent sm:flex sm:h-auto sm:items-center sm:justify-between sm:rounded-none sm:border-t sm:border-line sm:bg-transparent sm:py-2 sm:text-mist sm:data-[state=active]:bg-transparent sm:data-[state=active]:text-snow sm:data-[state=done]:bg-transparent sm:data-[state=done]:text-snow"
+              className="group h-1 flex-1 rounded-full bg-white/20 data-[state=active]:bg-accent/60 data-[state=done]:bg-accent roomy:flex roomy:h-auto roomy:items-center roomy:justify-between roomy:rounded-none roomy:border-t roomy:border-line roomy:bg-transparent roomy:py-2 roomy:text-mist roomy:data-[state=active]:bg-transparent roomy:data-[state=active]:text-snow roomy:data-[state=done]:bg-transparent roomy:data-[state=done]:text-snow"
             >
-              <span className="sr-only sm:not-sr-only">{item}</span>
-              <span className="hidden size-4 place-items-center rounded border border-white/25 text-[10px] font-semibold text-ink-950 sm:grid group-data-[state=active]:border-accent group-data-[state=active]:shadow-[0_0_12px_rgba(211,140,34,.6)] group-data-[state=done]:border-accent group-data-[state=done]:bg-accent">
+              <span className="sr-only roomy:not-sr-only">{item}</span>
+              <span className="hidden size-4 place-items-center rounded border border-white/25 text-[10px] font-semibold text-ink-950 roomy:grid group-data-[state=active]:border-accent group-data-[state=active]:shadow-[0_0_12px_rgba(211,140,34,.6)] group-data-[state=done]:border-accent group-data-[state=done]:bg-accent">
                 <span className="hidden group-data-[state=done]:inline">✓</span>
               </span>
             </li>
@@ -310,7 +313,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
           aria-pressed={soundOn}
           aria-label={g.sound.on}
           title={soundOn ? g.sound.on : g.sound.off}
-          className="absolute end-4 top-[5.5rem] z-10 grid size-10 place-items-center rounded-full border border-line bg-ink-900/75 text-mist backdrop-blur-md transition-colors hover:text-snow aria-pressed:border-accent aria-pressed:text-accent-strong sm:end-[17rem] sm:top-24"
+          className="absolute end-4 top-[5.5rem] z-10 grid size-10 place-items-center rounded-full border border-line bg-ink-900/75 text-mist backdrop-blur-md transition-colors hover:text-snow aria-pressed:border-accent aria-pressed:text-accent-strong roomy:end-[17rem] roomy:top-24"
         >
           <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />

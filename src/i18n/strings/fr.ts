@@ -16,51 +16,6 @@ const fr: Strings = {
     showroom: "Showroom",
   },
   concept: "Aperçu de concept · contenu provisoire",
-  hero: {
-    eyebrow: "Showroom tuning · Sousse, Tunisie",
-    title: "Le tuning des voitures d'exception.",
-    lead: "Accessoires, carrosserie, jantes et performance pour voitures de luxe et de sport. Dépôt-vente et location.",
-    primary: "Demander une inspection",
-    secondary: "Nous écrire sur WhatsApp",
-    scroll: "Faites défiler",
-  },
-  sequence: [
-    {
-      kicker: "01 · Comprendre",
-      title: "Chaque pièce compte.",
-      body: "Avant de prendre un outil, nous étudions l'architecture de votre voiture et l'influence de chaque pièce sur les autres.",
-    },
-    {
-      kicker: "02 · Moteur et performance",
-      title: "La puissance, affinée.",
-      body: "Préparation, lignes d'échappement et entretien, adaptés à votre voiture.",
-    },
-    {
-      kicker: "03 · Jantes, freinage et suspension",
-      title: "Posture et maîtrise.",
-      body: "Jantes, freins, ressorts et amortisseurs choisis et montés selon votre conduite.",
-    },
-    {
-      kicker: "04 · Carrosserie et style",
-      title: "Chaque ligne, à votre façon.",
-      body: "Kits carrosserie, aéro, covering et peinture, posés et finis dans notre atelier.",
-    },
-    {
-      kicker: "05 · Précision",
-      title: "Remontée avec soin.",
-      body: "Jeux de carrosserie, fixations et finitions vérifiés avant que votre voiture ne quitte l'atelier.",
-    },
-    {
-      kicker: "06 · Transformation",
-      title: "Entrée d'origine. Sortie transformée.",
-      body: "Jantes, assiette, kit carrosserie, teinte et vitres — posés et finis dans notre atelier.",
-    },
-    {
-      kicker: "07 · Votre voiture",
-      title: "Lancez votre projet.",
-      body: "Indiquez les pièces sur notre voiture interactive, ajoutez une note et envoyez la demande sur WhatsApp.",
-    },
-  ],
   services: {
     kicker: "Services",
     title: "Tout ce que votre voiture peut devenir.",

@@ -33,7 +33,12 @@ export async function generateMetadata({ params }: Omit<Props, "children">): Pro
     // Pitch preview: keep it out of search engines.
     robots: { index: false, follow: false },
     alternates: { languages: Object.fromEntries(locales.map((l) => [l, `/${l}`])) },
-    openGraph: { title: t.meta.title, description: t.meta.description, locale },
+    openGraph: {
+      title: t.meta.title,
+      description: t.meta.description,
+      locale,
+      images: [{ url: "/garage/og.jpg", width: 1200, height: 630 }],
+    },
   };
 }
 

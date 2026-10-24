@@ -26,7 +26,7 @@
 
 ## Overview
 
-A premium, scroll-driven web experience for **Transformer Tuning Cars** — a luxury car tuning showroom based in Sousse, Tunisia. The site showcases the shop's services through an interactive SVG car that explodes into individual parts as the visitor scrolls, then reassembles to reveal the finished build.
+A premium, scroll-driven web experience for **Transformer Tuning Cars** — a luxury car tuning showroom based in Sousse, Tunisia. The home page is a real-time 3D garage: as the visitor scrolls, a stock SUV drives in, goes through the workshop bay by bay (wheels, stance, body kit, paint, tint), and is unveiled tuned on the showroom turntable.
 
 Visitors can explore services, browse available cars, customise paint and wheel combinations in a live colour studio, and send inspection requests directly to the workshop via WhatsApp — no accounts or forms required.
 
@@ -38,14 +38,14 @@ Visitors can explore services, browse available cars, customise paint and wheel 
 
 | Feature | Description |
 | --- | --- |
-| **Scroll-driven hero** | A multi-panel SVG car explodes into 40+ individually rendered parts as the user scrolls, reassembles, and transforms from stock to tuned finish — all driven by a single CSS custom property (`--e`) with no JavaScript animation library. |
+| **Garage hero** | A Three.js scene of the atelier, baked in Blender, scrubbed by scroll: the car is upgraded bay by bay with pinned spec callouts, a scan-beam panel wipe and a cloth cover reveal. Falls back to Cycles-rendered stills without WebGL, on slow devices and with reduced motion. Optional sound (off by default). |
 | **Interactive inspection tool** | Full-page `/diagnose` view where customers tap car parts, add notes, and send a structured inspection request to WhatsApp in one click. Supports both 2D (SVG) and 3D (Three.js) views. |
 | **Colour studio** | Live paint × wheel × tint configurator. Pick from curated finishes and see the result instantly on the inline SVG car. |
 | **Inventory section** | "Available Now" cards for consignment sales and rentals, each linking to a pre-filled WhatsApp message. |
-| **Spark & beam effects** | Canvas-based welding sparks and a transformation beam that wipes the car from stock to tuned, with headlight flash on completion. |
+| **Effects** | Welding sparks, paint-booth mist and a scan beam that wipes each panel from stock to tuned, with a headlight flash at the reveal. |
 | **Full i18n** | French (default), Arabic (RTL), and English. Locale routing via Next.js middleware with `generateStaticParams` for static generation. |
 | **WhatsApp integration** | Every CTA across the site opens a pre-composed WhatsApp message in the workshop's preferred language (French). |
-| **Reduced motion** | All animations respect `prefers-reduced-motion: reduce` — explosion snaps, beam hides, sparks disabled. |
+| **Reduced motion** | All animations respect `prefers-reduced-motion: reduce` — the garage hero shows its stills, with the same overlays. |
 | **Responsive** | Designed and tested at 390 px (mobile) and 1440 px (desktop). No horizontal overflow at any scroll position. |
 
 ---
@@ -57,7 +57,8 @@ Visitors can explore services, browse available cars, customise paint and wheel 
 | Framework | [Next.js 15](https://nextjs.org/) (App Router, React 19, TypeScript strict) |
 | Styling | [Tailwind CSS v4](https://tailwindcss.com/) with CSS custom properties design system |
 | Car rendering | Inline SVG with CSS 3D transforms — no images, fully scalable |
-| 3D views | [Three.js](https://threejs.org/) (diagnose tool orbit camera) |
+| 3D views | [Three.js](https://threejs.org/) (garage hero, diagnose tool orbit camera) |
+| 3D assets | Blender (headless scripts in `blender/garage/`), ComfyUI for textures, music and sound effects (`art/comfy/`) |
 | Typography | Sora (display), Inter (body), JetBrains Mono (accents), IBM Plex Sans Arabic |
 | Testing | [Vitest](https://vitest.dev/) (unit), [Playwright](https://playwright.dev/) (screenshot scripts) |
 | Deployment | [Vercel](https://vercel.com/) |
@@ -121,21 +122,19 @@ NEXT_DIST_DIR=.next-build npx next build
 │   │   ├── art/            # SVG drawing primitives (side, views, defs, geometry)
 │   │   ├── models/         # Car model geometry data
 │   │   ├── three/          # Three.js car builder and textures
-│   │   ├── CarStage.tsx    # Scroll-driven hero stage with dual stock/tuned layers
 │   │   ├── PartRender.tsx  # Standalone part renderer (services, studio, cards)
 │   │   ├── palette.ts      # Paint colours, wheel styles, tint levels
-│   │   ├── registry.ts     # Part registry with groups, z-order, offsets
-│   │   ├── timeline.ts     # Pure timeline: explode and transform keyframes
-│   │   └── useExplode.ts   # React hook: scroll → CSS variable driver
+│   │   └── registry.ts     # Part registry with groups, z-order, offsets
 │   ├── components/
 │   │   ├── ColourStudio.tsx # Paint × wheel × tint configurator
-│   │   ├── HeroSequence.tsx # Multi-panel scroll-driven hero section
+│   │   ├── GarageHero.tsx   # Scroll track, overlays, stills fallback, sound toggle
 │   │   ├── Inventory.tsx    # Available cars with filter chips
 │   │   ├── Nav.tsx          # Sticky navigation
 │   │   ├── Footer.tsx
 │   │   ├── WhatsAppFloat.tsx
-│   │   ├── diagnose/        # Interactive inspection tool (2D + 3D)
-│   │   └── sparks/          # Canvas particle system
+│   │   └── diagnose/        # Interactive inspection tool (2D + 3D)
+│   ├── garage/             # Garage hero: timeline.ts (pure scroll → state), heroCar.ts (the swap point),
+│   │                       # scene/ (three.js facade), sound/ (cue sheet + Web Audio engine)
 │   ├── config/
 │   │   ├── garage.ts       # Business details (address, socials, WhatsApp)
 │   │   └── inventory.ts    # Example car listings
@@ -198,18 +197,15 @@ The car is a hand-crafted SVG composed of **40+ individually positioned parts**,
 ```
 Registry (parts, groups, z-order)
   → Art primitives (SVG paths per view)
-    → CarStage (positioned, animated via --e and --tx)
+    → CarCanvas (diagnose tool, positioned via CSS variables)
       → PartRender (standalone usage in cards, studio)
 ```
 
-### Scroll Timeline
+### Garage Hero
 
-A pure, unit-tested timeline module (`timeline.ts`) maps scroll progress (0–1) to two animation values:
+`src/garage/timeline.ts` is a pure, unit-tested function `stateAt(p)` that turns scroll progress (0–1) into everything the scene needs: where the car is, which bay is working, lift, wheel finish, ride height, kit, paint and tint sweeps, cover pull, showroom lights and the camera. `GarageHero.tsx` reads the scroll each frame, eases towards it, and hands the state to the three.js facade (`src/garage/scene`), to the HTML overlays and to the sound engine. Scrolling back up replays the same states.
 
-- **`explodeAt(p)`** — 0 (assembled) → 1 (exploded) → 0 (reassembled)
-- **`transformAt(p)`** — 0 (stock) → 1 (tuned), with smoothstep easing
-
-These drive CSS custom properties `--e` and `--tx` via `requestAnimationFrame`, with lerp smoothing for 60fps fluidity. The hook settles (stops rAF) when idle.
+The atelier is built and lightmap-baked in Blender by the scripts in `blender/garage/` (run headless through `run.py`), exported to `public/garage/garage.glb`; `render_stills.py` renders the fallback stills. To swap the hero car, change `src/garage/heroCar.ts`.
 
 ### Design System
 

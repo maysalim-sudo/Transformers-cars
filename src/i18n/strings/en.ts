@@ -14,51 +14,6 @@ const en = {
     showroom: "Showroom",
   },
   concept: "Concept preview · placeholder content",
-  hero: {
-    eyebrow: "Tuning showroom · Sousse, Tunisia",
-    title: "Tuning for exceptional cars.",
-    lead: "Accessories, body styling, wheels and performance for luxury and sports cars. Plus consignment sales and rentals.",
-    primary: "Request an inspection",
-    secondary: "Message us on WhatsApp",
-    scroll: "Scroll to explore",
-  },
-  sequence: [
-    {
-      kicker: "01 · Understanding",
-      title: "Every component, considered.",
-      body: "Before we pick up a tool, we look at how your car is put together and how each part affects the others.",
-    },
-    {
-      kicker: "02 · Engine & performance",
-      title: "Power, refined.",
-      body: "Performance upgrades, exhaust systems and servicing, matched to your car.",
-    },
-    {
-      kicker: "03 · Wheels, brakes & suspension",
-      title: "Stance and control.",
-      body: "Wheels, brakes, springs and dampers chosen and fitted to suit the way you drive.",
-    },
-    {
-      kicker: "04 · Body styling",
-      title: "Every line, your way.",
-      body: "Body kits, aero, wraps and refinishing, fitted and finished in our workshop.",
-    },
-    {
-      kicker: "05 · Precision",
-      title: "Put back together with care.",
-      body: "Panel gaps, fixings and finishes checked before your car leaves the workshop.",
-    },
-    {
-      kicker: "06 · Transformation",
-      title: "Stock in. Transformed out.",
-      body: "Wheels, stance, body kit, colour and tint — fitted and finished in our workshop.",
-    },
-    {
-      kicker: "07 · Your car",
-      title: "Start your build.",
-      body: "Point to the parts on our interactive car, add a note, and send the request on WhatsApp.",
-    },
-  ],
   services: {
     kicker: "Services",
     title: "Everything your car can become.",
