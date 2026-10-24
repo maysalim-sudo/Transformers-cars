@@ -140,7 +140,7 @@ export function rigCar(scene: THREE.Object3D): RiggedCar {
       mat.color.lerpColors(C[kind][0], C[kind][1], k);
       if (kind === "glass") mat.opacity = heroCar.stock.glassOpacity + (heroCar.tuned.glassOpacity - heroCar.stock.glassOpacity) * k;
     }
-    for (const l of leds) l.mat.emissiveIntensity = l.base * (0.6 + s.headlights * 2.5);
+    for (const l of leds) l.mat.emissiveIntensity = l.base * (0.6 + s.headlights * 1.2);
   };
 
   apply(stateAt(0));

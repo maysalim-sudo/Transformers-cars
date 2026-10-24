@@ -47,7 +47,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.22, 0.4, 0.95);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.25, 0.08, 0.98);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 

@@ -222,18 +222,18 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
           </div>
         ))}
 
-        {/* job card */}
-        <ol className="absolute end-4 top-20 z-10 w-44 rounded-xl border border-line bg-ink-900/75 p-3 text-[12px] backdrop-blur-md sm:end-8 sm:top-24 sm:w-56 sm:p-4 sm:text-[13px]">
-          <li className="mb-2 font-mono text-[10px] uppercase tracking-[0.24em] text-mist">{g.jobCard.title}</li>
+        {/* job card; on phones a thin row of six segments, so it does not cover the car */}
+        <ol className="absolute inset-x-4 top-[4.5rem] z-10 flex gap-1.5 sm:inset-x-auto sm:end-8 sm:top-24 sm:block sm:w-56 sm:rounded-xl sm:border sm:border-line sm:bg-ink-900/75 sm:p-4 sm:text-[13px] sm:backdrop-blur-md">
+          <li className="sr-only mb-2 font-mono text-[10px] uppercase tracking-[0.24em] text-mist sm:not-sr-only sm:block">{g.jobCard.title}</li>
           {g.jobCard.items.map((item, i) => (
             <li
               key={item}
               ref={(el) => void (jobs.current[i] = el)}
               data-state="todo"
-              className="group flex items-center justify-between border-t border-line py-1.5 text-mist data-[state=active]:text-snow data-[state=done]:text-snow sm:py-2"
+              className="group h-1 flex-1 rounded-full bg-white/20 data-[state=active]:bg-accent/60 data-[state=done]:bg-accent sm:flex sm:h-auto sm:items-center sm:justify-between sm:rounded-none sm:border-t sm:border-line sm:bg-transparent sm:py-2 sm:text-mist sm:data-[state=active]:bg-transparent sm:data-[state=active]:text-snow sm:data-[state=done]:bg-transparent sm:data-[state=done]:text-snow"
             >
-              {item}
-              <span className="grid size-4 place-items-center rounded border border-white/25 text-[10px] font-semibold text-ink-950 group-data-[state=active]:border-accent group-data-[state=active]:shadow-[0_0_12px_rgba(211,140,34,.6)] group-data-[state=done]:border-accent group-data-[state=done]:bg-accent">
+              <span className="sr-only sm:not-sr-only">{item}</span>
+              <span className="hidden size-4 place-items-center rounded border border-white/25 text-[10px] font-semibold text-ink-950 sm:grid group-data-[state=active]:border-accent group-data-[state=active]:shadow-[0_0_12px_rgba(211,140,34,.6)] group-data-[state=done]:border-accent group-data-[state=done]:bg-accent">
                 <span className="hidden group-data-[state=done]:inline">✓</span>
               </span>
             </li>
@@ -264,8 +264,9 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
             <p className="mt-3 text-sm leading-relaxed text-mist">{b.body}</p>
             {i === g.bays.length - 1 && (
               <>
-                <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.24em] text-mist">{g.spec.title}</p>
-                <dl className="mt-2 border-t border-line text-[13px]">
+                {/* the spec sheet repeats the callouts; on phones it would hide the car the reveal is about */}
+                <p className="mt-5 hidden font-mono text-[10px] uppercase tracking-[0.24em] text-mist sm:block">{g.spec.title}</p>
+                <dl className="mt-2 hidden border-t sm:block border-line text-[13px]">
                   {g.spec.rows.map((r) => (
                     <div key={r.label} className="flex justify-between border-b border-line py-1.5">
                       <dt className="text-mist">{r.label}</dt>

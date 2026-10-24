@@ -3,6 +3,7 @@
 //   fractions: comma list of hero-track progress (0–1) or absolute scroll offsets as y<px>
 //   --reduced  emulate prefers-reduced-motion
 //   --raf      instead of screenshots, count requestAnimationFrame calls over 2 s at each position, after a 3.5 s settle
+//   --gpu      render WebGL on the real GPU (headless Chrome otherwise uses a software rasteriser, too slow for live mode)
 //   --nowebgl  launch Chrome with WebGL off (the garage hero must fall back to its stills)
 //   --lose-context  after load, force the garage canvas to lose its WebGL context
 //   --block=<s>     abort every request whose URL contains <s> (e.g. --block=garage.glb)
@@ -22,7 +23,11 @@ mkdirSync(out, { recursive: true });
 const defaultChrome = process.platform === "win32" ? "C:/Program Files/Google/Chrome/Application/chrome.exe" : "/usr/bin/google-chrome";
 const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH ?? defaultChrome,
-  args: flags.has("--nowebgl") ? ["--disable-webgl", "--disable-3d-apis"] : [],
+  args: flags.has("--nowebgl")
+    ? ["--disable-webgl", "--disable-3d-apis"]
+    : flags.has("--gpu")
+      ? ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=gl"]
+      : [],
 });
 const page = await browser.newPage({
   viewport: { width: Number(w), height: Number(h) },

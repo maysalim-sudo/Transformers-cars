@@ -16,7 +16,7 @@ export type World = {
 const BASE = "/garage/";
 const DOOR_TRAVEL = 3.4;
 const LIFT_HEIGHT = 0.55;
-const SPOT_POWER = 260;
+const SPOT_POWER = 95;
 
 async function loadLightmap(name: string): Promise<THREE.Texture | null> {
   try {
