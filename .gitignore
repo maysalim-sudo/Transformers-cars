@@ -48,3 +48,8 @@ next-env.d.ts
 /blender/source/
 *.blend1
 /blender/textures/
+
+# garage hero: generated candidates and review renders
+/art/comfy/out/
+/art/garage-review/
+*.blend1
