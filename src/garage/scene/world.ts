@@ -159,6 +159,8 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
     shaft.position.copy(s.position);
     shaft.quaternion.setFromUnitVectors(down, dir.normalize());
     shaft.renderOrder = 2;
+    // haze, not a surface: seen by the main camera only, never mirrored in the floor (layer 1)
+    shaft.layers.set(1);
     scene.add(shaft);
     shaftMats.push(m);
     shaftGeos.push(g);

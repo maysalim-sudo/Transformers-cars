@@ -36,4 +36,11 @@ describe("frame probe", () => {
   it("never flags a page whose frames all arrive throttled to one a second", () => {
     expect(run(createFrameProbe(), 0, 1000, 20).v).toBeNull();
   });
+
+  it("takes its own limits, for a stricter early check that only sheds an effect", () => {
+    const strict = () => createFrameProbe({ slowMs: 28, probeMs: 1000 });
+    expect(run(strict(), 0, 33, 100).v).toBe("slow"); // 30 fps: fine overall, too slow for the extras
+    expect(run(strict(), 0, 16.7, 100).v).toBe("ok");
+    expect(run(strict(), 0, 33, 100).t).toBeLessThan(1100); // answers after about a second
+  });
 });

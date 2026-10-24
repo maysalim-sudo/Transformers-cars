@@ -11,7 +11,8 @@ import { type RiggedCar, rigCar } from "./car";
 import { createEffects, type Effects } from "./effects";
 import { createGradePass } from "./grade";
 import { createGrounding, type Grounding } from "./grounding";
-import { createFrameProbe } from "./probe";
+import { createFrameProbe, type FrameProbe } from "./probe";
+import { createFloorReflections, type FloorReflections } from "./reflections";
 import { loadWorld, type World } from "./world";
 
 export type Garage = {
@@ -48,6 +49,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
   scene.environment = env;
   scene.environmentIntensity = 0.35;
   const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 200);
+  camera.layers.enable(1); // the light shafts (the floor-reflection camera sees layer 0 only)
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
@@ -61,6 +63,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
   let car: RiggedCar | null = null;
   let effects: Effects | null = null;
   let grounding: Grounding | null = null;
+  let reflections: FloorReflections | null = null;
   let size = { w: 1, h: 1 };
   let disposed = false;
   const slow: (() => void)[] = [];
@@ -76,10 +79,19 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
     scene.add(car.group);
     effects = createEffects(scene, car, reduced);
     grounding = createGrounding(scene, car, phone);
+    // real floor reflections cost a second scene render: desktop only
+    if (!phone) {
+      reflections = createFloorReflections(scene, w.root);
+      reflections.resize(size.w, size.h);
+    }
     renderer.compile(scene, camera);
   })();
 
   const probe = createFrameProbe();
+  // the floor reflections go first: a device that cannot hold ~35 fps with them drops them, and only
+  // then does the main probe judge it (so a mid-range laptop keeps the live scene, without mirrors)
+  let extrasProbe: FrameProbe | null = createFrameProbe({ slowMs: 28, probeMs: 1000 });
+  let mainProbe: FrameProbe | null = null;
   let lastFrame = 0;
 
   const onContextLost = (e: Event) => {
@@ -112,7 +124,18 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       if (!car) return;
       grade.tick(performance.now() / 1000);
       composer.render();
-      if (probe.frame(performance.now()) === "slow") slow.forEach((cb) => cb());
+      const now = performance.now();
+      if (extrasProbe) {
+        const verdict = extrasProbe.frame(now);
+        if (verdict) {
+          extrasProbe = null;
+          if (verdict === "slow" && reflections) {
+            reflections.dispose();
+            reflections = null;
+          }
+          mainProbe = probe;
+        }
+      } else if (mainProbe?.frame(now) === "slow") slow.forEach((cb) => cb());
     },
     project(id) {
       if (!car) return { x: 0, y: 0, visible: false };
@@ -126,6 +149,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       renderer.setSize(w, h, false);
       composer.setSize(w, h);
       grade.resize(w, h);
+      reflections?.resize(w, h);
       bloom.resolution.set(phone ? w / 2 : w, phone ? h / 2 : h);
       camera.aspect = w / h;
       camera.fov = portrait ? 52 : 36;
@@ -138,6 +162,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       canvas.removeEventListener("webglcontextlost", onContextLost);
       effects?.dispose();
       grounding?.dispose();
+      reflections?.dispose();
       car?.dispose();
       world?.dispose();
       env.dispose();

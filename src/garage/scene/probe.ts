@@ -9,7 +9,7 @@ const PAUSE_MS = 1000;
 
 export type FrameProbe = { frame(now: number): "ok" | "slow" | null };
 
-export function createFrameProbe(): FrameProbe {
+export function createFrameProbe({ slowMs = SLOW_MS, probeMs = PROBE_MS } = {}): FrameProbe {
   let last = 0;
   let total = 0;
   let frames = 0;
@@ -22,9 +22,9 @@ export function createFrameProbe(): FrameProbe {
       if (dt <= 0 || dt >= PAUSE_MS) return null;
       total += dt;
       frames++;
-      if (total < PROBE_MS) return null;
+      if (total < probeMs) return null;
       done = true;
-      return total / frames > SLOW_MS ? "slow" : "ok";
+      return total / frames > slowMs ? "slow" : "ok";
     },
   };
 }
