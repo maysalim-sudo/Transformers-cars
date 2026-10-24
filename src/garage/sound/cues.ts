@@ -8,7 +8,7 @@ export type OneShot = { id: string; at: number; file: string; gain: number };
 export type Loop = { id: string; file: string; gain(s: GarageState): number; rate?(s: GarageState): number };
 
 /** A frame that moves further than this is a jump (deep link, Home/End, scrollbar drag): it fires nothing. */
-const MAX_STEP = 0.05;
+export const MAX_STEP = 0.05;
 
 export const oneShots: OneShot[] = [
   { id: "door_rattle", at: 0.01, file: "door_rattle.mp3", gain: 0.8 },

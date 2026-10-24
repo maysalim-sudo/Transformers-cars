@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AnchorId } from "@/garage/heroCar";
 import type { Garage } from "@/garage/scene";
+import { createSoundEngine, type SoundEngine } from "@/garage/sound/engine";
 import { type GarageState, stateAt } from "@/garage/timeline";
 import { garage as shop } from "@/config/garage";
 import type { Locale } from "@/i18n/config";
@@ -16,6 +17,23 @@ const ANCHORS: AnchorId[] = ["wheels", "stance", "kit", "paint", "tint"];
 const STILL_OF_BAY = [0, 0, 0, 0, 1, 1, 2];
 const STILLS = ["arrival", "paint", "reveal"] as const;
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+const SOUND_KEY = "tt-sound";
+
+function readSoundPref() {
+  try {
+    return localStorage.getItem(SOUND_KEY) === "on";
+  } catch {
+    return false;
+  }
+}
+
+function writeSoundPref(on: boolean) {
+  try {
+    localStorage.setItem(SOUND_KEY, on ? "on" : "off");
+  } catch {
+    // private window or blocked storage: the toggle still works for this visit
+  }
+}
 
 function webglAvailable() {
   try {
@@ -35,6 +53,41 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
   const callouts = useRef<(HTMLElement | null)[]>([]);
   const bar = useRef<HTMLDivElement>(null);
   const waText = getStrings(shop.messageLocale).message.general;
+  const sound = useRef<SoundEngine | null>(null);
+  const [soundOn, setSoundOn] = useState(false);
+
+  const enableSound = async () => {
+    sound.current ??= createSoundEngine();
+    await sound.current.enable();
+  };
+
+  const toggleSound = () => {
+    const on = !soundOn;
+    setSoundOn(on);
+    writeSoundPref(on);
+    if (on) void enableSound();
+    else sound.current?.disable();
+  };
+
+  // a visitor who left sound on gets it back, but only from their first gesture: browsers refuse to start
+  // audio without one, so nothing plays before it
+  useEffect(() => {
+    if (!readSoundPref()) return;
+    setSoundOn(true);
+    const first = () => {
+      removeEventListener("pointerdown", first);
+      removeEventListener("keydown", first);
+      void enableSound();
+    };
+    addEventListener("pointerdown", first);
+    addEventListener("keydown", first);
+    return () => {
+      removeEventListener("pointerdown", first);
+      removeEventListener("keydown", first);
+    };
+  }, []);
+
+  useEffect(() => () => sound.current?.dispose(), []);
 
   useEffect(() => {
     const trackEl = track.current;
@@ -102,10 +155,12 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
     };
 
     let lastT = performance.now();
+    let soundP: number | null = null;
     const tick = (now: number) => {
       const dt = Math.min((now - lastT) / 1000, 0.1);
       lastT = now;
       const target = readP();
+      const prev = p;
       p = reduced ? target : p + (target - p) * (1 - Math.pow(0.0015, dt));
       if (Math.abs(target - p) < 1e-5) p = target;
       const s = stateAt(p, { portrait: portrait() });
@@ -114,11 +169,19 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
         scene.apply(s);
         scene.render();
       }
+      // the stills show a parked car: no engine note in still mode
+      sound.current?.frame(soundP ?? prev, p, live ? s : { ...s, carSpeed: 0 });
+      soundP = p;
       raf = visible && !document.hidden ? requestAnimationFrame(tick) : 0;
+      if (!raf) {
+        soundP = null;
+        sound.current?.suspend();
+      }
     };
     const start = () => {
       if (!raf && visible && !document.hidden) {
         lastT = performance.now();
+        sound.current?.resume();
         raf = requestAnimationFrame(tick);
       }
     };
@@ -239,6 +302,25 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
             </li>
           ))}
         </ol>
+
+        {/* sound toggle: opt-in, remembered; inside the stage so it exists only while the hero is on screen */}
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-pressed={soundOn}
+          aria-label={g.sound.on}
+          title={soundOn ? g.sound.on : g.sound.off}
+          className="absolute end-4 top-[5.5rem] z-10 grid size-10 place-items-center rounded-full border border-line bg-ink-900/75 text-mist backdrop-blur-md transition-colors hover:text-snow aria-pressed:border-accent aria-pressed:text-accent-strong sm:end-[17rem] sm:top-24"
+        >
+          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
+            {soundOn ? (
+              <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+            ) : (
+              <path d="M16 9.5l5 5M21 9.5l-5 5" />
+            )}
+          </svg>
+        </button>
 
         {/* bay 0: the headline; bays 1–6: one card each */}
         <div
