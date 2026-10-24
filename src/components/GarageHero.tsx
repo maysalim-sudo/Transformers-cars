@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { type Level, levelFromHints, readHints, readRemembered, remember, startLevel } from "@/garage/device";
 import type { AnchorId } from "@/garage/heroCar";
 import type { Garage } from "@/garage/scene";
+import { tierFromQuery } from "@/garage/scene/quality";
 import { createSoundEngine, type SoundEngine } from "@/garage/sound/engine";
 import { follow } from "@/garage/scroll";
 import { type GarageState, stateAt } from "@/garage/timeline";
@@ -33,14 +35,6 @@ function writeSoundPref(on: boolean) {
     localStorage.setItem(SOUND_KEY, on ? "on" : "off");
   } catch {
     // private window or blocked storage: the toggle still works for this visit
-  }
-}
-
-function webglAvailable() {
-  try {
-    return Boolean(document.createElement("canvas").getContext("webgl2"));
-  } catch {
-    return false;
   }
 }
 
@@ -209,16 +203,26 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
     setMode("still");
     overlays(stateAt(p, { portrait: portrait() }), p);
 
-    if (!reduced && webglAvailable()) {
+    // pick the tier this device can likely hold before downloading anything 3D (no WebGL2, a software
+    // renderer or a data saver keep the stills); `?tier=` pins one for checks and leaves no memory
+    const phone = innerWidth < 768;
+    const pinned = tierFromQuery(location.search);
+    const level: Level = reduced ? "stills" : (pinned ?? startLevel(levelFromHints(readHints(phone)), readRemembered(), Date.now()));
+    if (level !== "stills") {
       import("@/garage/scene")
         .then(({ createGarage }) => {
           if (cancelled) return;
-          scene = createGarage(canvasEl, { phone: innerWidth < 768, reduced });
-          scene.onSlow(toStill);
+          scene = createGarage(canvasEl, { phone, reduced, tier: level, pinned: pinned !== null });
+          scene.onSlow(() => {
+            remember("stills");
+            toStill();
+          });
+          scene.onTier(remember);
           scene.onLost(toStill);
           onResize();
           return scene.ready.then(() => {
             if (cancelled || !scene) return;
+            if (!pinned) remember(level);
             live = true;
             setMode("live");
             start();

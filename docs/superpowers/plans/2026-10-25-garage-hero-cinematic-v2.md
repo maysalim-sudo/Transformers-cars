@@ -52,6 +52,30 @@
   - `?tier=` pins the tier and disables dropping.
 - [ ] **Step 4:** Run `npx vitest run src/garage`. Expected: PASS.
 - [ ] **Step 5:** Commit `feat(garage): quality ladder sheds effects tier by tier`.
+- [ ] **Step 6: Device pre-check (owner, 2026-10-25: "fetch a lower spec for his device").** Create `src/garage/device.ts` + `device.test.ts`:
+  - `export type Level = Tier | "stills"`
+  - `export function levelFromHints(h: { gpu: string | null; memory?: number; cores?: number; saveData?: boolean; net?: string; phone: boolean }): Level`. In order:
+    - no WebGL2 (`gpu` null), a software renderer (/swiftshader|llvmpipe|softpipe|software|basic render/i), data saver, or a 2g/slow-2g link → `"stills"`
+    - a phone → `"low"`
+    - `memory` ≤ 2 or `cores` ≤ 2 → `"low"`
+    - an integrated GPU (/intel|mali|adreno|powervr|vivante|videocore/i) or `memory` ≤ 4 → `"medium"`
+    - otherwise → `"ultra"`
+  - `export function startLevel(hints: Level, remembered: { level: Level; at: number } | null, now: number): Level`. A remembered level less than 7 days old caps the start:
+    - one tier above a remembered tier, so one bad visit heals on the next;
+    - `"stills"` exactly, so a weak device does not download the 3D again.
+  - Tests:
+    - `"sends software renderers and data savers to stills"`
+    - `"starts phones low"`
+    - `"starts integrated GPUs at medium"`
+    - `"starts a strong desktop at ultra"`
+    - `"retries one tier above the remembered one"`
+    - `"keeps stills for a week, then tries again"`
+  - Wire it in GarageHero:
+    - read the GPU name once (`WEBGL_debug_renderer_info` when present, else `RENDERER`), then lose that test context;
+    - remember the tier under localStorage `tt-tier` (`{level, at}`, try/catch) whenever the scene drops a tier or falls to stills;
+    - `"stills"` never imports the scene;
+    - `?tier=` pins the tier and skips both the check and the memory.
+  - Commit `feat(garage): start each device at the tier it can hold`.
 
 ### Task 2: Film-crew camera (desktop)
 

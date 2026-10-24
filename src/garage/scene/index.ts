@@ -11,7 +11,7 @@ import { type RiggedCar, rigCar } from "./car";
 import { createEffects, type Effects } from "./effects";
 import { createGradePass } from "./grade";
 import { createGrounding, type Grounding } from "./grounding";
-import { createFrameProbe, type FrameProbe } from "./probe";
+import { createLadder, TIER_FEATURES, type Tier } from "./quality";
 import { createFloorReflections, type FloorReflections } from "./reflections";
 import { loadWorld, type World } from "./world";
 
@@ -22,6 +22,8 @@ export type Garage = {
   project(id: AnchorId): { x: number; y: number; visible: boolean };
   resize(w: number, h: number, portrait: boolean): void;
   onSlow(cb: () => void): void;
+  /** the ladder dropped to a lighter tier */
+  onTier(cb: (tier: Tier) => void): void;
   onLost(cb: () => void): void;
   dispose(): void;
 };
@@ -30,14 +32,20 @@ const EXPOSURE = 0.72;
 /** the site background matches the Blender world (deep night blue) */
 const NIGHT = new THREE.Color().setRGB(0.006, 0.009, 0.02);
 
-export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; reduced?: boolean }): Garage {
-  const { phone, reduced = false } = opts;
+/**
+ * `tier` is where the quality ladder starts (from the device pre-check); `pinned` holds it there
+ * (the `?tier=` check), so it never drops and never falls back to the stills.
+ */
+export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; reduced?: boolean; tier: Tier; pinned?: boolean }): Garage {
+  const { phone, reduced = false, pinned = false } = opts;
+  let features = TIER_FEATURES[opts.tier];
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !phone, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, phone ? 1.5 : 1.75));
+  const dpr = () => Math.min(window.devicePixelRatio, phone ? 1.5 : Infinity, features.maxDpr);
+  renderer.setPixelRatio(dpr());
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = EXPOSURE;
-  renderer.shadowMap.enabled = !phone;
+  renderer.shadowMap.enabled = !phone && features.shadows;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
@@ -64,9 +72,10 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
   let effects: Effects | null = null;
   let grounding: Grounding | null = null;
   let reflections: FloorReflections | null = null;
-  let size = { w: 1, h: 1 };
+  let size = { w: 1, h: 1, portrait: false };
   let disposed = false;
   const slow: (() => void)[] = [];
+  const tierCbs: ((tier: Tier) => void)[] = [];
   const lost: (() => void)[] = [];
 
   const loader = new GLTFLoader();
@@ -79,20 +88,45 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
     scene.add(car.group);
     effects = createEffects(scene, car, reduced);
     grounding = createGrounding(scene, car, phone);
+    if (!features.shadows) shadowsOff();
     // real floor reflections cost a second scene render: desktop only
-    if (!phone) {
+    if (!phone && features.reflections) {
       reflections = createFloorReflections(scene, w.root);
       reflections.resize(size.w, size.h);
     }
     renderer.compile(scene, camera);
   })();
 
-  const probe = createFrameProbe();
-  // the floor reflections go first: a device that cannot hold ~35 fps with them drops them, and only
-  // then does the main probe judge it (so a mid-range laptop keeps the live scene, without mirrors)
-  let extrasProbe: FrameProbe | null = createFrameProbe({ slowMs: 28, probeMs: 1000 });
-  let mainProbe: FrameProbe | null = null;
+  // the heaviest effects go first, one tier per slow second; only on the last tier does the main
+  // check judge the scene itself (so a mid-range laptop keeps it live, with fewer effects)
+  const ladder = pinned ? null : createLadder(opts.tier);
   let lastFrame = 0;
+
+  function shadowsOff() {
+    renderer.shadowMap.enabled = false;
+    scene.traverse((o) => {
+      const light = o as THREE.SpotLight;
+      if (!light.isLight || !light.castShadow) return;
+      light.castShadow = false; // changes the lights' state, so the materials recompile without shadows
+      light.shadow.map?.dispose();
+      light.shadow.map = null;
+    });
+  }
+
+  function applyTier(tier: Tier) {
+    features = TIER_FEATURES[tier];
+    if (!features.reflections && reflections) {
+      reflections.dispose();
+      reflections = null;
+    }
+    if (!features.shadows && renderer.shadowMap.enabled) shadowsOff();
+    if (renderer.getPixelRatio() !== dpr()) {
+      renderer.setPixelRatio(dpr());
+      composer.setPixelRatio(dpr());
+      api.resize(size.w, size.h, size.portrait);
+    }
+    tierCbs.forEach((cb) => cb(tier));
+  }
 
   const onContextLost = (e: Event) => {
     e.preventDefault();
@@ -103,7 +137,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
   const look = new THREE.Vector3();
   const v = new THREE.Vector3();
 
-  return {
+  const api: Garage = {
     ready,
     apply(s) {
       if (!world || !car || !effects || !grounding) return;
@@ -124,18 +158,9 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       if (!car) return;
       grade.tick(performance.now() / 1000);
       composer.render();
-      const now = performance.now();
-      if (extrasProbe) {
-        const verdict = extrasProbe.frame(now);
-        if (verdict) {
-          extrasProbe = null;
-          if (verdict === "slow" && reflections) {
-            reflections.dispose();
-            reflections = null;
-          }
-          mainProbe = probe;
-        }
-      } else if (mainProbe?.frame(now) === "slow") slow.forEach((cb) => cb());
+      const verdict = ladder?.frame(performance.now());
+      if (verdict === "drop") applyTier(ladder!.tier);
+      else if (verdict === "stills") slow.forEach((cb) => cb());
     },
     project(id) {
       if (!car) return { x: 0, y: 0, visible: false };
@@ -145,7 +170,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       return { x: ((v.x + 1) / 2) * size.w, y: ((1 - v.y) / 2) * size.h, visible };
     },
     resize(w, h, portrait) {
-      size = { w, h };
+      size = { w, h, portrait };
       renderer.setSize(w, h, false);
       composer.setSize(w, h);
       grade.resize(w, h);
@@ -156,6 +181,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       camera.updateProjectionMatrix();
     },
     onSlow: (cb) => void slow.push(cb),
+    onTier: (cb) => void tierCbs.push(cb),
     onLost: (cb) => void lost.push(cb),
     dispose() {
       disposed = true;
@@ -171,4 +197,5 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       renderer.dispose();
     },
   };
+  return api;
 }
