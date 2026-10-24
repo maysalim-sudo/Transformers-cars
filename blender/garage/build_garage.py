@@ -279,7 +279,15 @@ def numeral(x, text):
     ob.location = W(x, 3.4, -HW + 0.06)
     ob.rotation_euler = (math.pi / 2, 0, 0)
     ob.data.materials.append(M["amber_accent"])
-    return ob
+    # glTF has no text: bake the glyphs into a mesh
+    bpy.context.view_layer.update()
+    me = bpy.data.meshes.new_from_object(ob.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    mesh_ob = bpy.data.objects.new(f"num_{text}", me)
+    mesh_ob.matrix_world = ob.matrix_world.copy()
+    bpy.data.objects.remove(ob, do_unlink=True)
+    bpy.data.curves.remove(curve)
+    GARAGE.objects.link(mesh_ob)
+    return mesh_ob
 
 
 for i, key in enumerate(("wheels", "stance", "kit", "paint", "tint")):
