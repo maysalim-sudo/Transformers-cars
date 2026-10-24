@@ -226,6 +226,67 @@ const en = {
     inquirySale: "Hello, I am interested in the {name} on consignment. Is it still available?",
     inquiryRental: "Hello, I would like to rent the {name}. When is it available?",
   },
+  garage: {
+    eyebrow: "Garage · Showroom · Sousse",
+    title: "Drive in stock. Roll out transformed.",
+    lead: "Scroll to take a car through our workshop, bay by bay, all the way to the showroom floor.",
+    scroll: "Scroll ↓",
+    jobCard: {
+      title: "Job card · #0427",
+      items: ["Wheels & calipers", "Stance −45 mm", "Body kit", "Paint", "Window tint", "Showroom"],
+    },
+    bays: [
+      {
+        kicker: "Bay 01 · Wheels & brakes",
+        title: "Up on the lift. New wheels on.",
+        body: "Gloss-black wheels and amber calipers, torqued and balanced in the first bay.",
+      },
+      {
+        kicker: "Bay 02 · Suspension",
+        title: "Lowered 45 mm.",
+        body: "Coilovers set the stance: closer to the road, tighter in the corners.",
+      },
+      {
+        kicker: "Bay 03 · Body styling",
+        title: "Skirts and diffuser.",
+        body: "Every panel fitted and aligned by hand before it goes to paint.",
+      },
+      {
+        kicker: "Bay 04 · Paint booth",
+        title: "Showroom amber.",
+        body: "Base, colour and clear coat, panel by panel, in a dust-free booth.",
+      },
+      {
+        kicker: "Bay 05 · Glass",
+        title: "Dark tint.",
+        body: "Privacy film and heat rejection, cut to every window.",
+      },
+      {
+        kicker: "06 · Showroom",
+        title: "Start your build.",
+        body: "Tell us what you drive and what you want it to become.",
+      },
+    ],
+    callouts: {
+      wheels: { label: "Wheels", value: "Forged · gloss black" },
+      stance: { label: "Stance", value: "−45 mm coilovers" },
+      kit: { label: "Body kit", value: "Skirts · diffuser" },
+      paint: { label: "Paint", value: "Showroom amber" },
+      tint: { label: "Glass", value: "Dark tint" },
+    },
+    spec: {
+      title: "Build #0427 · SUV",
+      rows: [
+        { label: "Wheels", value: "Forged · gloss black" },
+        { label: "Stance", value: "−45 mm" },
+        { label: "Body", value: "Skirts · diffuser" },
+        { label: "Paint", value: "Showroom amber" },
+        { label: "Glass", value: "Dark tint" },
+      ],
+    },
+    cta: { primary: "Start your build", secondary: "WhatsApp" },
+    sound: { on: "Sound on", off: "Sound off" },
+  },
 };
 
 export type Strings = typeof en;

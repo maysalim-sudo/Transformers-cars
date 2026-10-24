@@ -228,6 +228,67 @@ const fr: Strings = {
     inquirySale: "Bonjour, je suis intéressé(e) par la {name} en dépôt-vente. Est-elle toujours disponible ?",
     inquiryRental: "Bonjour, je souhaite louer la {name}. Quelles sont les disponibilités ?",
   },
+  garage: {
+    eyebrow: "Garage · Showroom · Sousse",
+    title: "Entrée d'origine. Sortie transformée.",
+    lead: "Faites défiler pour suivre une voiture dans notre atelier, baie par baie, jusqu'au showroom.",
+    scroll: "Défiler ↓",
+    jobCard: {
+      title: "Fiche atelier · #0427",
+      items: ["Jantes & étriers", "Assiette −45 mm", "Kit carrosserie", "Peinture", "Vitres teintées", "Showroom"],
+    },
+    bays: [
+      {
+        kicker: "Baie 01 · Jantes & freins",
+        title: "Sur le pont. Nouvelles jantes.",
+        body: "Jantes noir brillant et étriers ambre, serrées et équilibrées dans la première baie.",
+      },
+      {
+        kicker: "Baie 02 · Suspension",
+        title: "Abaissée de 45 mm.",
+        body: "Les combinés filetés fixent l'assiette : plus près de la route, plus précise en virage.",
+      },
+      {
+        kicker: "Baie 03 · Carrosserie",
+        title: "Bas de caisse et diffuseur.",
+        body: "Chaque élément ajusté et aligné à la main avant la peinture.",
+      },
+      {
+        kicker: "Baie 04 · Cabine de peinture",
+        title: "Ambre showroom.",
+        body: "Apprêt, base et vernis, panneau par panneau, dans une cabine sans poussière.",
+      },
+      {
+        kicker: "Baie 05 · Vitrage",
+        title: "Teinte foncée.",
+        body: "Film intimité et anti-chaleur, découpé pour chaque vitre.",
+      },
+      {
+        kicker: "06 · Showroom",
+        title: "Lancez votre projet.",
+        body: "Dites-nous ce que vous conduisez et ce qu'elle doit devenir.",
+      },
+    ],
+    callouts: {
+      wheels: { label: "Jantes", value: "Forgées · noir brillant" },
+      stance: { label: "Assiette", value: "Combinés −45 mm" },
+      kit: { label: "Kit", value: "Bas de caisse · diffuseur" },
+      paint: { label: "Peinture", value: "Ambre showroom" },
+      tint: { label: "Vitrage", value: "Teinte foncée" },
+    },
+    spec: {
+      title: "Projet #0427 · SUV",
+      rows: [
+        { label: "Jantes", value: "Forgées · noir brillant" },
+        { label: "Assiette", value: "−45 mm" },
+        { label: "Carrosserie", value: "Bas de caisse · diffuseur" },
+        { label: "Peinture", value: "Ambre showroom" },
+        { label: "Vitrage", value: "Teinte foncée" },
+      ],
+    },
+    cta: { primary: "Lancez votre projet", secondary: "WhatsApp" },
+    sound: { on: "Son activé", off: "Son coupé" },
+  },
 };
 
 export default fr;
