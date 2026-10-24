@@ -33,8 +33,10 @@ export const oneShots: OneShot[] = [
 
 export const loops: Loop[] = [
   { id: "street", file: "street.mp3", gain: (s) => (s.bay === 0 ? 1 - s.doorOpen * 0.8 : 0) },
-  { id: "engine", file: "engine_loop.mp3", gain: (s) => 0.15 + s.carSpeed * 0.85, rate: (s) => 0.8 + s.carSpeed * 0.5 },
-  { id: "room", file: "room_tone.mp3", gain: (s) => (s.bay >= 1 && s.bay <= 5 ? 0.35 : 0) },
+  // idles at the door, follows the car while it drives, off while it is parked in a bay (the engine loop
+  // under the whole scroll read as a drone)
+  { id: "engine", file: "engine_loop.mp3", gain: (s) => (s.carSpeed > 0 ? 0.25 + s.carSpeed * 0.75 : s.bay === 0 ? 0.25 : 0), rate: (s) => 0.8 + s.carSpeed * 0.5 },
+  { id: "room", file: "room_tone.mp3", gain: (s) => (s.bay >= 1 && s.bay <= 5 ? 0.2 : 0) },
   { id: "spray", file: "spray.mp3", gain: (s) => (s.paintSweep > 0 && s.paintSweep < 1 ? 1 : 0) },
 ];
 

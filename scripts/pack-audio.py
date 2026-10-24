@@ -1,11 +1,13 @@
 """Pack a garage sound for the web with ffmpeg.
 
-usage: python3 -I scripts/pack-audio.py <in> <out.mp3> [--mono] [--loop] [--trim <seconds>] [--fade <seconds>]
+usage: python3 -I scripts/pack-audio.py <in> <out.mp3> [--mono] [--loop] [--trim <seconds>] [--fade <seconds>] [--highpass <Hz>] [--notch <Hz,Hz,...>]
 
 Trims leading/trailing silence, normalises to -16 LUFS with a -1 dBTP ceiling, and encodes MP3:
 music 128 kbps stereo, effects (--mono) 96 kbps mono.
 --trim  keep only the first <seconds> after the silence trim
 --fade  fade out over the last <seconds> (one-shots that ring on)
+--highpass  cut everything below <Hz>: generated loops carry a mains-like hum (~50 Hz) that small speakers turn into a buzz
+--notch  cut narrow tones (a buzz and its harmonics) at each listed frequency
 --loop  make the end flow into the start: the last 50 ms are crossfaded with the first 50 ms
 """
 import subprocess, sys, tempfile
@@ -17,12 +19,17 @@ opt = lambda k, d=None: a[a.index(k) + 1] if k in a else d
 mono = "--mono" in a
 silence = "silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse"
 chain = [silence]
+if opt("--highpass"):
+    # three 2-pole stages: about 36 dB/octave, so a 50 Hz hum under a 100 Hz cut drops by ~36 dB
+    chain.append(",".join([f"highpass=f={opt('--highpass')}:poles=2"] * 3))
 if opt("--trim"):
     chain.append(f"atrim=0:{opt('--trim')}")
 if opt("--fade"):
     dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", src], capture_output=True, text=True).stdout)
     end = float(opt("--trim") or dur)
     chain.append(f"afade=t=out:st={max(0.0, end - float(opt('--fade')))}:d={opt('--fade')}")
+if opt("--notch"):
+    chain += [f"bandreject=f={hz}:width_type=q:w=6" for hz in opt("--notch").split(",")]
 chain.append("loudnorm=I=-16:TP=-1:LRA=11")
 Path(dest).parent.mkdir(parents=True, exist_ok=True)
 with tempfile.TemporaryDirectory() as tmp:

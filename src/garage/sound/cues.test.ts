@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { BAYS } from "../timeline";
+import { BAYS, stateAt } from "../timeline";
 import { cuesCrossed, loops, MUSIC, oneShots } from "./cues";
 
 const audioDir = path.resolve(__dirname, "../../../public/garage/audio");
@@ -48,6 +48,23 @@ describe("sound cues", () => {
       expect(c.at, c.id).toBeGreaterThanOrEqual(a);
       expect(c.at, c.id).toBeLessThanOrEqual(b);
     }
+  });
+
+  it("switches the engine off while the car is parked in a bay, so no drone runs under the scroll", () => {
+    const engine = loops.find((l) => l.id === "engine")!;
+    for (const p of [0.2, 0.36, 0.5, 0.66, 0.8, 0.97]) {
+      const s = stateAt(p);
+      expect(s.carSpeed, `p=${p}`).toBe(0);
+      expect(engine.gain(s), `p=${p}`).toBe(0);
+    }
+  });
+
+  it("idles the engine at the door and follows the car while it drives", () => {
+    const engine = loops.find((l) => l.id === "engine")!;
+    expect(engine.gain(stateAt(0.01))).toBeGreaterThan(0);
+    const moving = stateAt(0.1);
+    expect(moving.carSpeed).toBeGreaterThan(0);
+    expect(engine.gain(moving)).toBeGreaterThan(engine.gain(stateAt(0.01)));
   });
 
   it.skipIf(!existsSync(audioDir))("has a file for every cue, loop and music track", () => {

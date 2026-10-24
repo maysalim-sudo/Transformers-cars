@@ -11,7 +11,10 @@
     "seconds": 60,
     "bpm": 100,
     "keyscale": "A minor",
-    "pick": 101
+    "pick": 101,
+    "pack": [
+      "--loop"
+    ]
   },
   {
     "id": "music_sting",
@@ -25,7 +28,11 @@
     "seconds": 8,
     "bpm": 100,
     "keyscale": "A minor",
-    "pick": 11
+    "pick": 11,
+    "pack": [
+      "--fade",
+      "0.6"
+    ]
   },
   {
     "id": "door_rattle",
@@ -37,7 +44,16 @@
       3
     ],
     "seconds": 4,
-    "pick": 2
+    "pick": 2,
+    "pack": [
+      "--mono",
+      "--trim",
+      "3",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "engine_start",
@@ -49,7 +65,16 @@
       3
     ],
     "seconds": 4,
-    "pick": 2
+    "pick": 2,
+    "pack": [
+      "--mono",
+      "--trim",
+      "3.5",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "lift",
@@ -61,7 +86,16 @@
       3
     ],
     "seconds": 4,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--trim",
+      "3",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "wrench",
@@ -73,7 +107,16 @@
       3
     ],
     "seconds": 2,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--trim",
+      "1.5",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "coil_settle",
@@ -85,7 +128,16 @@
       3
     ],
     "seconds": 2,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--trim",
+      "1.5",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "panel",
@@ -97,7 +149,16 @@
       3
     ],
     "seconds": 2,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--trim",
+      "1.2",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "weld",
@@ -109,7 +170,16 @@
       3
     ],
     "seconds": 2,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--trim",
+      "1.2",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "fan_spin",
@@ -121,7 +191,16 @@
       3
     ],
     "seconds": 4,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--trim",
+      "3.5",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "squeegee",
@@ -133,7 +212,16 @@
       3
     ],
     "seconds": 2,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--trim",
+      "1.2",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "whoosh",
@@ -145,7 +233,16 @@
       3
     ],
     "seconds": 3,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--trim",
+      "2.5",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "cover_swoosh",
@@ -157,7 +254,16 @@
       3
     ],
     "seconds": 3,
-    "pick": 2
+    "pick": 2,
+    "pack": [
+      "--mono",
+      "--trim",
+      "2.5",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "spot",
@@ -169,7 +275,16 @@
       3
     ],
     "seconds": 2,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--trim",
+      "1.2",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "rev",
@@ -181,7 +296,16 @@
       3
     ],
     "seconds": 4,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--trim",
+      "3.5",
+      "--fade",
+      "0.25",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "street",
@@ -193,7 +317,13 @@
       3
     ],
     "seconds": 10,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--loop",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "engine_loop",
@@ -205,7 +335,13 @@
       3
     ],
     "seconds": 6,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--loop",
+      "--highpass",
+      "100"
+    ]
   },
   {
     "id": "room_tone",
@@ -217,7 +353,15 @@
       3
     ],
     "seconds": 10,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--loop",
+      "--highpass",
+      "100",
+      "--notch",
+      "120,240,330,360,480,600,660,720"
+    ]
   },
   {
     "id": "spray",
@@ -229,6 +373,12 @@
       3
     ],
     "seconds": 6,
-    "pick": 3
+    "pick": 3,
+    "pack": [
+      "--mono",
+      "--loop",
+      "--highpass",
+      "100"
+    ]
   }
 ]
