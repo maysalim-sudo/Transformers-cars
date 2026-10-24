@@ -103,10 +103,37 @@ const cams: Key[] = [
   [0.9, [5.5, 2.2, 6.5], [-1.5, 1.1, 0]],
   [1.0, [6.2, 1.5, 4.6], [-1.2, 1.2, -0.6]],
 ];
-// tall screens: same shots from further back and a little higher, so the car still fits the width
-const portraitCams: Key[] = cams.map(([p, o, l]) => [p, [o[0] * 1.45, o[1] * 1.15 + 0.3, o[2] * 1.45], l]);
+// tall screens (phones): overhead while the car drives, so its length runs up the screen; a three-quarter
+// view at each bay so the work shows; low for the reveal. Over the paint booth the camera stays under its
+// 3.4 m roof, so it dips before the car goes in and rises only once it is out.
+const OVER: [Vec3, Vec3] = [[1.4, 4.4, 0.3], [-0.4, 0, 0]];
+const portraitCams: Key[] = [
+  [0.0, [9, 4.5, 4.2], [-6, 1.6, -1]],
+  [0.05, ...OVER],
+  [0.125, ...OVER],
+  [0.15, [-4.6, 3.2, 4.4], [0, 0.6, 0]], // wheels
+  [0.255, [-4.6, 3.2, 4.4], [0, 0.6, 0]],
+  [0.285, ...OVER],
+  [0.31, ...OVER],
+  [0.34, [-3.2, 2.2, 4.6], [-0.6, 0.4, 0]], // stance
+  [0.405, [-3.2, 2.2, 4.6], [-0.6, 0.4, 0]],
+  [0.435, ...OVER],
+  [0.46, ...OVER],
+  [0.49, [-5, 3, 4.0], [-1.2, 0.5, 0]], // body kit
+  [0.555, [-5, 3, 4.0], [-1.2, 0.5, 0]],
+  [0.565, ...OVER],
+  [0.59, [-4.4, 2.9, 5.6], [0, 0.8, 0]], // paint booth
+  [0.735, [-4.4, 2.9, 5.6], [0, 0.8, 0]],
+  [0.765, ...OVER],
+  [0.775, ...OVER],
+  [0.79, [-1.6, 2.7, 4.6], [0, 1.1, 0]], // tint
+  [0.835, [-1.6, 2.7, 4.6], [0, 1.1, 0]],
+  [0.85, ...OVER],
+  [0.9, [6.4, 2.6, 6.2], [-1.2, 1.0, 0]], // reveal
+  [1.0, [6.6, 1.9, 5.4], [-1.2, 1.1, -0.4]],
+];
 
-/** Past the door, keep the camera half a metre inside the side walls (wider portrait offsets would pass them). */
+/** Past the door, keep the camera half a metre inside the side walls. */
 const WALL_Z = layout.hall.halfWidth - 0.5;
 const insideWalls = (x: number, z: number) => (x < layout.door ? Math.max(-WALL_Z, Math.min(WALL_Z, z)) : z);
 

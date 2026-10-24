@@ -110,6 +110,39 @@ describe("garage timeline", () => {
     }
   });
 
+  describe("phone camera: overhead on the drives, dipping in at each bay", () => {
+    /** how steeply the camera looks down, in degrees */
+    const pitch = (p: number) => {
+      const { pos, look } = stateAt(p, { portrait: true }).camera;
+      return (Math.atan2(pos[1] - look[1], Math.hypot(pos[0] - look[0], pos[2] - look[2])) * 180) / Math.PI;
+    };
+
+    it("films the drives between bays from overhead", () => {
+      // the drive into the paint booth is overhead only briefly (0.565): the booth roof makes the camera dip early
+      for (const p of [0.08, 0.29, 0.445, 0.565, 0.77, 0.85]) expect(pitch(p), `p=${p}`).toBeGreaterThanOrEqual(60);
+    });
+
+    it("dips to a three-quarter view while each bay works on the car", () => {
+      for (const p of [0.2, 0.37, 0.52, 0.67, 0.81]) {
+        expect(pitch(p), `p=${p}`).toBeGreaterThanOrEqual(15);
+        expect(pitch(p), `p=${p}`).toBeLessThanOrEqual(50);
+      }
+    });
+
+    it("comes down low for the reveal", () => {
+      expect(pitch(0.99)).toBeLessThan(30);
+    });
+
+    it("stays under the workshop ceiling, and under the booth roof whenever it is over the booth", () => {
+      const { booth, bays, hall, door } = layout;
+      for (let i = 0; i <= 1000; i++) {
+        const [x, y, z] = stateAt(i / 1000, { portrait: true }).camera.pos;
+        if (x < door && x > layout.split) expect(y, `p=${i / 1000}`).toBeLessThanOrEqual(hall.height - 0.4);
+        if (Math.abs(x - bays.paint) <= booth.length / 2 && Math.abs(z) <= booth.width / 2) expect(y, `p=${i / 1000} over the booth`).toBeLessThanOrEqual(booth.height - 0.2);
+      }
+    });
+  });
+
   it("spins the wheels by the distance driven", () => {
     for (const p of [0, 0.1, 0.3, 0.95]) {
       const s = stateAt(p, { wheelRadius: 0.4 });
