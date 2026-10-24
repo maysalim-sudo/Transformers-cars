@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Showroom Turntable — concept B (throwaway)</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+<style>
+  :root { --ink: #050608; --line: rgba(255,255,255,.09); --snow: #f4f6f8; --mist: #9aa1ab; --accent: #d38c22; --accent2: #f0b04e; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: var(--ink); color: var(--snow); font-family: Inter, system-ui, sans-serif; }
+  canvas#gl { position: fixed; inset: 0; width: 100vw; height: 100svh; display: block; }
+  #track { height: 1100svh; }
+  .mono { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; }
+  nav { position: fixed; top: 0; inset-inline: 0; height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; z-index: 5;
+        background: linear-gradient(to bottom, rgba(5,6,8,.85), transparent); }
+  nav img { height: 30px; }
+  nav .links { display: flex; gap: 26px; color: var(--mist); font-size: 13px; }
+  #proto { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 7; color: var(--ink); background: var(--accent2); padding: 4px 10px; border-radius: 6px; font-size: 10px; }
+  #hero { position: fixed; left: 50%; bottom: 64px; transform: translateX(-50%); text-align: center; z-index: 4; width: min(760px, calc(100vw - 32px)); transition: opacity .4s; }
+  #hero h1 { font-family: Sora, sans-serif; font-weight: 300; font-size: clamp(34px, 5.2vw, 68px); line-height: 1.03; letter-spacing: -.02em; margin-top: 14px; }
+  #hero p { color: var(--mist); margin: 16px auto 0; max-width: 440px; line-height: 1.6; font-size: 15px; }
+  /* big chapter numerals, car-show style */
+  .chap { position: fixed; left: 28px; top: 50%; transform: translateY(-50%); z-index: 4; width: min(380px, calc(100vw - 32px)); opacity: 0; transition: opacity .45s, transform .45s; pointer-events: none; }
+  .chap.on { opacity: 1; pointer-events: auto; }
+  .chap .n { font-family: Sora, sans-serif; font-weight: 200; font-size: 120px; line-height: .9; color: transparent; -webkit-text-stroke: 1px rgba(240,176,78,.55); }
+  .chap h2 { font-family: Sora, sans-serif; font-weight: 300; font-size: clamp(26px, 3vw, 38px); line-height: 1.08; margin-top: 12px; }
+  .chap p { color: var(--mist); font-size: 14px; line-height: 1.6; margin-top: 10px; max-width: 320px; }
+  .chap .cta { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+  .btn { height: 44px; padding: 0 20px; border-radius: 999px; display: inline-flex; align-items: center; font-size: 14px; text-decoration: none; }
+  .btn.p { background: var(--snow); color: var(--ink); font-weight: 500; }
+  .btn.s { border: 1px solid rgba(255,255,255,.2); color: var(--snow); }
+  .spec { margin-top: 18px; border-top: 1px solid var(--line); }
+  .spec div { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--mist); }
+  .spec div b { color: var(--snow); font-weight: 500; }
+  /* callouts pinned to the car */
+  .call { position: fixed; left: 0; top: 0; z-index: 3; pointer-events: none; opacity: 0; transition: opacity .3s; }
+  .call.on { opacity: 1; }
+  .call i { position: absolute; left: -6px; top: -6px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent2); box-shadow: 0 0 0 5px rgba(240,176,78,.18), 0 0 18px var(--accent); }
+  .call em { position: absolute; left: 0; top: 0; width: 70px; height: 1px; background: linear-gradient(90deg, var(--accent2), rgba(240,176,78,.2)); transform-origin: 0 0; transform: rotate(-32deg); }
+  .call span { position: absolute; left: 58px; top: -60px; white-space: nowrap; background: rgba(11,13,17,.82); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; backdrop-filter: blur(8px); }
+  .call span small { display: block; color: var(--accent); }
+  .call span b { font-family: Sora, sans-serif; font-weight: 400; font-size: 15px; }
+  #rail { position: fixed; right: 28px; top: 50%; transform: translateY(-50%); z-index: 4; display: grid; gap: 14px; }
+  #rail div { width: 2px; height: 34px; background: rgba(255,255,255,.14); position: relative; }
+  #rail div::after { content: ""; position: absolute; inset: 0; background: var(--accent2); transform-origin: top; transform: scaleY(var(--f, 0)); box-shadow: 0 0 10px var(--accent); }
+  #hint { position: fixed; right: 28px; bottom: 28px; color: var(--mist); z-index: 4; }
+  #load { position: fixed; inset: 0; display: grid; place-items: center; background: var(--ink); z-index: 10; transition: opacity .6s; }
+  @media (max-width: 760px) {
+    nav .links { display: none; }
+    .chap { top: auto; bottom: 24px; left: 16px; transform: none; }
+    .chap .n { font-size: 64px; }
+    #rail { right: 12px; }
+    #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="load"><span class="mono" style="color:var(--mist)">Setting the stage…</span></div>
+<span id="proto" class="mono">Concept B · throwaway prototype</span>
+<canvas id="gl"></canvas>
+<nav><img src="logo-on-dark.png" alt="Transformer Tuning Cars" /><div class="links"><span>Services</span><span>Showroom</span><span>Colour studio</span><span>Contact</span></div></nav>
+
+<div id="hero">
+  <p class="mono" style="color:var(--accent)">Showroom · Sousse</p>
+  <h1>Every build gets<br />its reveal.</h1>
+  <p>Scroll to pull the cover and watch a stock car become a Transformer build under the lights.</p>
+</div>
+
+<section class="chap" data-s="1"><div class="n">01</div><p class="mono" style="color:var(--accent)">Wheels &amp; brakes</p><h2>Forged wheels. Amber calipers.</h2><p>The first thing people notice, and the first thing we change.</p></section>
+<section class="chap" data-s="2"><div class="n">02</div><p class="mono" style="color:var(--accent)">Suspension</p><h2>Down 45 mm.</h2><p>Coilovers close the arch gap and sharpen every corner.</p></section>
+<section class="chap" data-s="3"><div class="n">03</div><p class="mono" style="color:var(--accent)">Body styling</p><h2>Skirts and diffuser.</h2><p>Fitted and aligned by hand, panel by panel.</p></section>
+<section class="chap" data-s="4"><div class="n">04</div><p class="mono" style="color:var(--accent)">Paint</p><h2>Showroom amber.</h2><p>Base, colour and clear coat. Deep enough to see the lights in it.</p></section>
+<section class="chap" data-s="5"><div class="n">05</div><p class="mono" style="color:var(--accent)">Glass</p><h2>Dark tint.</h2><p>Privacy film and heat rejection on every window.</p></section>
+<section class="chap" data-s="6"><div class="n">06</div><p class="mono" style="color:var(--accent)">Build #0427 · SUV</p><h2>Start your build.</h2>
+  <div class="spec"><div>Wheels <b>Forged · gloss black</b></div><div>Stance <b>−45 mm</b></div><div>Body <b>Skirts · diffuser</b></div><div>Paint <b>Showroom amber</b></div><div>Glass <b>Dark tint</b></div></div>
+  <div class="cta"><a class="btn p" href="#">Start your build</a><a class="btn s" href="#">WhatsApp</a></div></section>
+
+<div class="call" data-s="1"><i></i><em></em><span><small class="mono">Wheels</small><b>Forged · gloss black</b></span></div>
+<div class="call" data-s="2"><i></i><em></em><span><small class="mono">Stance</small><b>−45 mm coilovers</b></span></div>
+<div class="call" data-s="3"><i></i><em></em><span><small class="mono">Body kit</small><b>Side skirts · diffuser</b></span></div>
+<div class="call" data-s="4"><i></i><em></em><span><small class="mono">Paint</small><b>Showroom amber</b></span></div>
+<div class="call" data-s="5"><i></i><em></em><span><small class="mono">Glass</small><b>Dark tint</b></span></div>
+
+<div id="rail"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+<p id="hint" class="mono">Scroll ↓</p>
+<div id="track"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { Reflector } from "three/addons/objects/Reflector.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+
+history.scrollRestoration = "manual"; scrollTo(0, 0);
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+const ss = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const lerp = (a, b, t) => a + (b - a) * t;
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---------- renderer ----------
+const canvas = document.getElementById("gl");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.85;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color("#040507");
+scene.fog = new THREE.Fog("#040507", 14, 34);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.35;
+const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.3, 0.4, 0.92);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+const emis = (c, k = 3) => new THREE.MeshStandardMaterial({ color: "#000", emissive: c, emissiveIntensity: k });
+
+// ---------- stage ----------
+// mirror floor under a dark glaze: a polished showroom floor, not a mirror
+const mirror = new Reflector(new THREE.CircleGeometry(30, 64), { textureWidth: 1024, textureHeight: 1024, color: "#8a8f99" });
+mirror.rotation.x = -Math.PI / 2; scene.add(mirror);
+const glaze = new THREE.Mesh(new THREE.CircleGeometry(30, 64), new THREE.MeshStandardMaterial({ color: "#060708", roughness: 0.35, metalness: 0, transparent: true, opacity: 0.78 }));
+glaze.rotation.x = -Math.PI / 2; glaze.position.y = 0.003; glaze.receiveShadow = true; scene.add(glaze);
+// turntable
+const table = new THREE.Group(); scene.add(table);
+const disc = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 3.7, 0.14, 128), new THREE.MeshStandardMaterial({ color: "#101115", roughness: 0.22, metalness: 0.7 }));
+disc.position.y = 0.07; disc.receiveShadow = true; table.add(disc);
+const ringMat = emis("#f0b04e", 0.4);
+const ring = new THREE.Mesh(new THREE.TorusGeometry(3.66, 0.022, 8, 160), ringMat); ring.rotation.x = Math.PI / 2; ring.position.y = 0.12; scene.add(ring);
+// curved backdrop with light slats
+const back = new THREE.Mesh(new THREE.CylinderGeometry(16, 16, 12, 96, 1, true), new THREE.MeshStandardMaterial({ color: "#08090c", roughness: 0.9, side: THREE.BackSide }));
+back.position.y = 6; scene.add(back);
+const slatMat = emis("#ffe2b0", 0.0);
+for (let i = 0; i < 40; i++) {
+  const a = (i / 40) * Math.PI * 2;
+  const s = new THREE.Mesh(new THREE.BoxGeometry(0.06, 7.5, 0.06), slatMat); s.position.set(Math.sin(a) * 15.8, 4.6, Math.cos(a) * 15.8); scene.add(s);
+}
+// logo on the backdrop, behind the car from the default camera
+await Promise.all(["300 120px Sora", "400 50px \"JetBrains Mono\""].map((f) => document.fonts.load(f)));
+const logoTex = new THREE.TextureLoader().load("logo-on-dark.png"); logoTex.colorSpace = THREE.SRGBColorSpace;
+const logoMat = new THREE.MeshBasicMaterial({ map: logoTex, transparent: true, toneMapped: false, opacity: 0 });
+const logo = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 2.5), logoMat);
+logo.position.set(8.9, 3.6, -12.6); logo.lookAt(0, 3.6, 0); scene.add(logo);
+// overhead truss ring with 8 fixtures; they come on one by one
+const truss = new THREE.Mesh(new THREE.TorusGeometry(5.2, 0.08, 8, 96), new THREE.MeshStandardMaterial({ color: "#2a2d33", roughness: 0.4, metalness: 0.9 }));
+truss.rotation.x = Math.PI / 2; truss.position.y = 7.2; scene.add(truss);
+const rig = [];
+for (let i = 0; i < 8; i++) {
+  const a = (i / 8) * Math.PI * 2 + 0.2;
+  const x = Math.sin(a) * 5.2, z = Math.cos(a) * 5.2;
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.24, 0.42, 20), new THREE.MeshStandardMaterial({ color: "#16181c", metalness: 0.8, roughness: 0.4 }));
+  head.position.set(x, 6.9, z); head.lookAt(0, 0, 0); head.rotateX(Math.PI / 2); scene.add(head);
+  const lens = new THREE.Mesh(new THREE.CircleGeometry(0.17, 20), emis("#fff1d6", 0)); lens.position.set(x * 0.985, 6.74, z * 0.985); lens.lookAt(0, 0, 0); scene.add(lens);
+  const sp = new THREE.SpotLight("#fff1dc", 0, 18, 0.36, 0.55, 1.2); sp.position.set(x, 6.8, z); sp.target.position.set(0, 0.6, 0);
+  if (i % 3 === 0) { sp.castShadow = true; sp.shadow.mapSize.set(1024, 1024); sp.shadow.bias = -0.0004; }
+  scene.add(sp, sp.target);
+  // apex at the fixture, base on the turntable
+  const from = new THREE.Vector3(x, 6.75, z), to = new THREE.Vector3(0, 0, 0), h = from.distanceTo(to);
+  const cg = new THREE.ConeGeometry(1.6, h, 40, 1, true); cg.translate(0, -h / 2, 0);
+  const cone = new THREE.Mesh(cg, new THREE.MeshBasicMaterial({ color: "#ffe8c0", transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  cone.position.copy(from); cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), to.clone().sub(from).normalize()); scene.add(cone);
+  rig.push({ sp, lens: lens.material, cone: cone.material, on: 0.02 + i * 0.012 });
+}
+const pilot = new THREE.SpotLight("#ffd9a8", 30, 16, 0.3, 0.7, 1.3); pilot.position.set(0, 9, 0.01); pilot.target.position.set(0, 0, 0); scene.add(pilot, pilot.target);
+scene.add(new THREE.HemisphereLight("#8d9ab0", "#050506", 0.12));
+
+// ---------- the car ----------
+const car = new THREE.Group(); car.position.y = 0.14; table.add(car);
+const C = { stockPaint: new THREE.Color("#8d939c"), tunedPaint: new THREE.Color("#c27a12"),
+  stockRim: new THREE.Color("#c4c9cf"), tunedRim: new THREE.Color("#0c0d10"), stockCal: new THREE.Color("#4b5058"), tunedCal: new THREE.Color("#ffad3a"),
+  stockGlass: new THREE.Color("#6e7d8c"), tunedGlass: new THREE.Color("#040506") };
+const paintBase = new THREE.MeshPhysicalMaterial({ color: C.stockPaint, metalness: 0.55, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.03 });
+const rimBase = new THREE.MeshPhysicalMaterial({ color: C.stockRim, metalness: 1, roughness: 0.28, clearcoat: 0.6 });
+const calBase = new THREE.MeshStandardMaterial({ color: C.stockCal, metalness: 0.3, roughness: 0.4 });
+const glassBase = new THREE.MeshPhysicalMaterial({ color: C.stockGlass, roughness: 0.04, transparent: true, opacity: 0.45, clearcoat: 1 });
+// per part clones, so the scan beam can switch each panel as it passes
+const swaps = []; // { mat, kind, x }
+let wheels = [], body = [], lips = [], leds = [], cover, coverH = 1.8, len = 4.6, ready = false;
+const anchors = {};
+
+new GLTFLoader().load("suv.glb", (g) => {
+  const root = g.scene;
+  const bb = new THREE.Box3().setFromObject(root); root.position.y = -bb.min.y; root.position.x = -(bb.min.x + bb.max.x) / 2; root.position.z = -(bb.min.z + bb.max.z) / 2;
+  car.add(root); scene.updateMatrixWorld(true);
+  const size = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3()); len = size.x; coverH = size.y;
+  const parts = {};
+  root.traverse((o) => { if (typeof o.userData.partId === "string") (parts[o.userData.partId] ??= []).push(o); });
+  const centreX = (o) => car.worldToLocal(new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3())).x;
+  for (const [id, nodes] of Object.entries(parts)) for (const node of nodes) {
+    const x = centreX(node), cache = new Map();
+    node.traverse((o) => {
+      if (!o.isMesh) return;
+      o.castShadow = o.receiveShadow = true;
+      const n = (o.material.name || "").split(".")[0];
+      const kind = id.startsWith("caliper") ? "cal" : n === "paint" ? "paint" : n === "glass" ? "glass" : n === "rim" || n === "machined" ? "rim" : n === "led" ? "led" : null;
+      if (!kind) return;
+      if (kind === "led") { o.material = o.material.clone(); o.material.userData.k = o.material.emissiveIntensity; leds.push(o.material); return; }
+      if (!cache.has(kind)) { const m = { paint: paintBase, glass: glassBase, rim: rimBase, cal: calBase }[kind].clone(); cache.set(kind, m); swaps.push({ mat: m, kind, x }); }
+      o.material = cache.get(kind);
+    });
+  }
+  root.traverse((o) => { if (/^side_skirt_lip|^diffuser_light|^side_skirt_(left|right)\./.test(o.name)) lips.push(o); });
+  for (const id of ["wheel_front_left", "wheel_front_right", "wheel_rear_left", "wheel_rear_right"]) {
+    const w = parts[id][0]; const c = new THREE.Box3().setFromObject(w).getCenter(new THREE.Vector3());
+    const pivot = new THREE.Group(); pivot.position.copy(car.worldToLocal(c.clone())); car.add(pivot); pivot.attach(w); wheels.push(pivot);
+  }
+  const still = /^(wheel|brake|caliper|spring)/;
+  for (const [id, nodes] of Object.entries(parts)) if (!still.test(id)) for (const n of nodes) body.push({ n, y: n.position.y });
+  lips.forEach((l) => (l.visible = false));
+  // callout anchors (car local): wheel centre, sill, rear lower, roof, side glass
+  const fl = wheels.find((w) => w.position.z > 0 && w.position.x < 0) ?? wheels[0];
+  anchors[1] = fl.position.clone().add(new THREE.Vector3(0, 0, 0.12));
+  anchors[2] = new THREE.Vector3(0, 0.42, size.z / 2);
+  anchors[3] = new THREE.Vector3(len / 2 - 0.15, 0.45, 0.35);
+  anchors[4] = new THREE.Vector3(-0.6, size.y * 0.72, size.z / 2 - 0.05);
+  anchors[5] = new THREE.Vector3(0.2, size.y * 0.78, size.z / 2 - 0.12);
+  // satin cover: a squashed sphere around the car, flat underneath
+  const cg = new THREE.SphereGeometry(1, 64, 32); const pos = cg.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const k = Math.pow(Math.abs(y), 0.6) * Math.sign(y);
+    pos.setXYZ(i, Math.sign(x) * Math.pow(Math.abs(x), 0.55) * (len / 2 + 0.12), Math.max(0.02, (k * 0.55 + 0.5) * (coverH * 1.1)), Math.sign(z) * Math.pow(Math.abs(z), 0.5) * (size.z / 2 + 0.12));
+  }
+  cg.computeVertexNormals();
+  cover = new THREE.Mesh(cg, new THREE.MeshPhysicalMaterial({ color: "#16171b", roughness: 0.55, sheen: 1, sheenColor: new THREE.Color("#d38c22"), sheenRoughness: 0.4, transparent: true, side: THREE.DoubleSide }));
+  cover.castShadow = true; car.add(cover);
+  ready = true; document.getElementById("load").style.opacity = 0; setTimeout(() => document.getElementById("load").remove(), 700);
+});
+
+// ---------- scan beam (lives on the car, sweeps nose to tail) ----------
+const beam = new THREE.Group(); car.add(beam);
+const beamTex = (() => { const c = document.createElement("canvas"); c.width = 256; c.height = 4; const g = c.getContext("2d");
+  const gr = g.createLinearGradient(0, 0, 256, 0); gr.addColorStop(0, "rgba(240,176,78,0)"); gr.addColorStop(0.5, "rgba(255,214,150,1)"); gr.addColorStop(1, "rgba(240,176,78,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 4); const t = new THREE.CanvasTexture(c); return t; })();
+const beamMat = new THREE.MeshBasicMaterial({ map: beamTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+const sheet = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 2.3), beamMat); sheet.rotation.y = Math.PI / 2; sheet.position.y = 1.2;
+const sheet2 = sheet.clone(); sheet2.rotation.y = 0; sheet2.scale.set(1, 1, 1);
+beam.add(sheet);
+const beamLine = new THREE.Mesh(new THREE.BoxGeometry(0.012, 2.2, 2.3), new THREE.MeshBasicMaterial({ color: "#ffd696", transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+beamLine.position.y = 1.2; beam.add(beamLine);
+const beamLight = new THREE.PointLight("#ffc46b", 0, 4, 1.5); beamLight.position.y = 1.2; beam.add(beamLight);
+
+// ---------- timeline ----------
+// scan windows: each upgrade is a sweep of the beam from nose (−x) to tail (+x)
+const scans = { rim: [0.17, 0.23], cal: [0.17, 0.23], kit: [0.47, 0.53], paint: [0.62, 0.71], glass: [0.78, 0.83] };
+const beamX = (p) => { for (const [a, b] of Object.values(scans)) if (p >= a - 0.01 && p <= b + 0.01) return { x: lerp(-len / 2 - 0.4, len / 2 + 0.4, ss(a, b, p)), on: ss(a - 0.01, a, p) * (1 - ss(b, b + 0.01, p)) }; return { x: 0, on: 0 }; };
+// a part switches once the beam has passed its centre
+const passed = (kind, x, p) => { const [a, b] = scans[kind]; const bx = lerp(-len / 2 - 0.4, len / 2 + 0.4, ss(a, b, p)); return clamp01((bx - x) / 0.35 + 0.5); };
+// camera keys: [p, azimuth°, elevation°, distance, target y, table rotation (rad)]
+const keys = [
+  [0.0, -32, 9, 11, 1.0, 0],
+  [0.1, -36, 10, 9, 0.9, 0],
+  [0.17, -52, 4, 5.6, 0.55, 0.15],
+  [0.25, -24, 3, 5.8, 0.55, 0.3],
+  [0.33, 0, 1.5, 7.2, 0.55, 0.0],
+  [0.41, 6, 2.5, 7.0, 0.6, 0.0],
+  [0.48, -18, 8, 6.8, 0.6, 3.5],
+  [0.56, -8, 9, 7.0, 0.6, 3.9],
+  [0.63, -38, 36, 8.6, 0.5, 4.9],
+  [0.72, -28, 30, 8.4, 0.5, 5.8],
+  [0.79, -12, 6, 5.4, 1.15, 6.28],
+  [0.85, -22, 7, 5.8, 1.1, 6.7],
+  [0.92, -36, 9, 9.2, 0.85, 9.2],
+  [1.0, -34, 7, 8.4, 0.85, 12.86],
+];
+const keyAt = (p) => { let i = 1; while (i < keys.length - 1 && p > keys[i][0]) i++; const a = keys[i - 1], b = keys[i]; const t = ss(a[0], b[0], p); return a.map((v, k) => lerp(v, b[k], t)); };
+const stationAt = (p) => (p < 0.13 ? 0 : p < 0.29 ? 1 : p < 0.44 ? 2 : p < 0.59 ? 3 : p < 0.76 ? 4 : p < 0.87 ? 5 : 6);
+const ranges = [[0.13, 0.29], [0.29, 0.44], [0.44, 0.59], [0.59, 0.76], [0.76, 0.87], [0.87, 1]];
+
+// ---------- scroll + frame ----------
+let target = 0, p = 0;
+const readScroll = () => { const max = document.documentElement.scrollHeight - innerHeight; target = max > 0 ? scrollY / max : 0; };
+addEventListener("scroll", readScroll, { passive: true });
+window.__setP = (v) => { const max = document.documentElement.scrollHeight - innerHeight; scrollTo(0, v * max); target = p = v; };
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w / h; camera.fov = w < 760 ? 50 : 34; camera.updateProjectionMatrix(); }
+addEventListener("resize", resize); resize(); readScroll();
+
+const chaps = [...document.querySelectorAll(".chap")], calls = [...document.querySelectorAll(".call")], rails = [...document.querySelectorAll("#rail div")];
+const hero = document.getElementById("hero"), hint = document.getElementById("hint");
+const clock = new THREE.Clock(), v = new THREE.Vector3(); let lastS = -1, prevRot = 0;
+
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  p = reduced ? target : lerp(p, target, 1 - Math.pow(0.0015, dt));
+  const [, az, el, dist, ty, rot] = keyAt(p);
+  table.rotation.y = rot;
+  if (ready) {
+    // cover off
+    const off = ss(0.03, 0.11, p);
+    cover.position.set(off * 1.2, off * 3.2, -off * 1.4); cover.rotation.set(off * 0.5, 0, -off * 0.35); cover.scale.setScalar(1 + off * 0.15);
+    cover.material.opacity = 1 - ss(0.07, 0.11, p); cover.visible = off < 1;
+    // lights come on one by one
+    for (const r of rig) { const k = ss(r.on, r.on + 0.015, p) * (0.75 + ss(0.88, 0.94, p) * 0.6); r.sp.intensity = k * 24; r.lens.emissiveIntensity = k * 6; r.cone.opacity = k * 0.012; }
+    pilot.intensity = 30 * (1 - ss(0.02, 0.12, p)) + 4;
+    ringMat.emissiveIntensity = 0.4 + ss(0.06, 0.14, p) * 3 + ss(0.88, 0.94, p) * 4;
+    slatMat.emissiveIntensity = ss(0.06, 0.16, p) * 0.5 + ss(0.88, 0.95, p) * 1.6;
+    logoMat.opacity = ss(0.86, 0.94, p);
+    // upgrades
+    for (const s of swaps) {
+      if (s.kind === "rim") { const k = passed("rim", s.x, p); s.mat.color.lerpColors(C.stockRim, C.tunedRim, k); s.mat.metalness = lerp(1, 0.6, k); }
+      else if (s.kind === "cal") s.mat.color.lerpColors(C.stockCal, C.tunedCal, passed("cal", s.x, p));
+      else if (s.kind === "paint") s.mat.color.lerpColors(C.stockPaint, C.tunedPaint, passed("paint", s.x, p));
+      else if (s.kind === "glass") { const k = passed("glass", s.x, p); s.mat.color.lerpColors(C.stockGlass, C.tunedGlass, k); s.mat.opacity = lerp(0.45, 0.9, k); }
+    }
+    const low = ss(0.33, 0.39, p) * 0.045; body.forEach((b) => (b.n.position.y = b.y - low));
+    const kitX = lerp(-len / 2 - 0.4, len / 2 + 0.4, ss(...scans.kit, p)); lips.forEach((l) => (l.visible = kitX > 0 || p > scans.kit[1]));
+    // wheels roll with the turntable so they look alive
+    wheels.forEach((w) => (w.rotation.z += (rot - prevRot) * 0.8));
+    // beam
+    const b = beamX(p); beam.position.x = b.x; beamMat.opacity = b.on * 0.45; beamLine.material.opacity = b.on * 0.9; beamLight.intensity = b.on * 5;
+    // headlight flash once it is done
+    const flash = p > 0.93 && p < 0.96 ? (Math.sin((p - 0.93) * 300) > 0 ? 1 : 0) : 0;
+    leds.forEach((m) => (m.emissiveIntensity = m.userData.k * (0.5 + flash * 2.5 + ss(0.96, 0.98, p) * 0.8)));
+  }
+  prevRot = rot;
+  // camera orbit
+  const a = THREE.MathUtils.degToRad(az), e = THREE.MathUtils.degToRad(el);
+  camera.position.set(Math.sin(a) * Math.cos(e) * dist, ty + Math.sin(e) * dist, Math.cos(a) * Math.cos(e) * dist);
+  camera.lookAt(0, ty, 0);
+
+  // overlay
+  const s = stationAt(p);
+  if (s !== lastS) { chaps.forEach((c) => c.classList.toggle("on", +c.dataset.s === s)); lastS = s; }
+  calls.forEach((c) => {
+    const k = +c.dataset.s, an = anchors[k];
+    const show = ready && an && s === k && p > ranges[k - 1][0] + 0.03;
+    c.classList.toggle("on", !!show);
+    if (show) { v.copy(an); car.localToWorld(v); v.project(camera); c.style.transform = `translate(${(v.x * 0.5 + 0.5) * innerWidth}px, ${(-v.y * 0.5 + 0.5) * innerHeight}px)`; }
+  });
+  rails.forEach((r, i) => r.style.setProperty("--f", clamp01((p - ranges[i][0]) / (ranges[i][1] - ranges[i][0])).toFixed(3)));
+  hero.style.opacity = 1 - ss(0.03, 0.08, p);
+  hint.style.opacity = 1 - ss(0, 0.03, p);
+  composer.render();
+  requestAnimationFrame(frame);
+}
+window.__dbg = { scene, car, camera };
+frame();
+</script>
+</body>
+</html>

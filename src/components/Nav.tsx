@@ -24,6 +24,9 @@ export function Nav({ locale, t }: { locale: Locale; t: Strings }) {
           <Link href={`/${locale}#services`} className="transition-colors hover:text-snow">
             {t.nav.services}
           </Link>
+          <Link href={`/${locale}/showroom`} className="transition-colors hover:text-snow">
+            {t.nav.showroom}
+          </Link>
           <Link href={`/${locale}/diagnose`} className="transition-colors hover:text-snow">
             {t.nav.diagnose}
           </Link>

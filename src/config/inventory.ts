@@ -1,15 +1,23 @@
 import type { CarModelId } from "@/car/models";
 import type { WheelStyle } from "@/car/palette";
 
+export type ListingStatus = "available" | "reserved" | "sold" | "rented";
+
 export type Listing = {
   id: string;
   kind: "sale" | "rental";
   /** make and model only — no prices, years or mileage until the showroom confirms them */
   name: string;
   year?: number;
+  /** in TND; omitted = "price on request" */
+  price?: number;
+  /** omitted = available */
+  status?: ListingStatus;
   /** drawing used until a real photo exists */
   render: { model: CarModelId; paint: string; wheel: WheelStyle["id"] };
+  /** cover photo; `photos` holds the rest of the gallery */
   photo?: string;
+  photos?: string[];
   /** true = illustrative listing, shown with a note; never presented as real stock */
   example: boolean;
 };

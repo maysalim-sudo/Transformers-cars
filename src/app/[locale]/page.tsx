@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PartRender } from "@/car/PartRender";
 import { ColourStudio } from "@/components/ColourStudio";
 import { HeroSequence } from "@/components/HeroSequence";
-import { Inventory } from "@/components/Inventory";
+import { FeaturedCars } from "@/components/showroom/FeaturedCars";
 import { WhatsAppIcon } from "@/components/WhatsAppFloat";
 import { garage } from "@/config/garage";
 import { isLocale } from "@/i18n/config";
@@ -67,7 +67,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         </div>
       </section>
 
-      <Inventory locale={locale} t={t} />
+      <FeaturedCars locale={locale} t={t} />
 
       <ColourStudio locale={locale} t={t} />
 
