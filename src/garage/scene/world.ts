@@ -76,8 +76,13 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
     if (n) nodes[name] = n;
   }
   const rest = Object.fromEntries(Object.entries(nodes).map(([k, n]) => [k, n.position.clone()])) as Record<MovingNode, THREE.Vector3>;
-  // the cover rides on the turntable
+  // the cover rides on the turntable; its pull-off is a baked morph clip that the scroll scrubs
   if (nodes.cover && nodes.turntable) nodes.turntable.attach(nodes.cover);
+  const mixer = new THREE.AnimationMixer(root);
+  const clip = gltf.animations.find((a) => a.name.startsWith("cover_pull"));
+  const pull = clip ? mixer.clipAction(clip) : null;
+  pull?.play();
+  if (pull) pull.paused = true;
 
   // live lights: soft fill, one key per bay (only while unbaked), booth flare, the showroom rig
   const lights: THREE.Light[] = [];
@@ -131,12 +136,18 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
       // (only in the paint bay; elsewhere it waits at its end of the booth)
       if (nodes.gantry) nodes.gantry.position.x = s.bay === 4 ? carX + (-1.1 + 2.2 * s.paintSweep) * (carLength / 2) : rest.gantry.x;
       if (nodes.turntable) nodes.turntable.rotation.y = s.tableTurn;
+      if (nodes.cover) nodes.cover.visible = s.coverVisible;
+      if (pull && clip && s.coverVisible) {
+        pull.time = s.coverPull * clip.duration;
+        mixer.update(0);
+      }
       booth.intensity = s.boothLight * 30;
       boothPanels.forEach((m, i) => (m.emissiveIntensity = boothBase[i] * (1 + s.boothLight * 2.5)));
       spots.forEach((l, i) => (l.intensity = s.showLights[i] * SPOT_POWER));
       lenses.forEach((m, i) => m && (m.emissiveIntensity = s.showLights[i] * 8));
     },
     dispose() {
+      mixer.stopAllAction();
       root.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
       owned.forEach((m) => m.dispose());
       lights.forEach((l) => l.removeFromParent());

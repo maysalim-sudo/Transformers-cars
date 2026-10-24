@@ -1,17 +1,18 @@
 """Pack garage images for the web.
 
 usage:
-  python3 -I scripts/pack-assets.py <src> <dest.webp> --max <px> [--quality 82] [--tile]
+  python3 -I scripts/pack-assets.py <src> <dest.webp> --max <px> [--quality 82] [--tile] [--smooth]
   python3 -I scripts/pack-assets.py --sheet <dir> <dest.jpg>
 
 --max   longest side in pixels after resizing (never upscales)
+--smooth  remove bake grain (median 3 px, then gaussian 1.5 px): for lightmaps, which carry only soft light
 --tile  make the image tile seamlessly: blend each edge with the opposite one (half-offset crossfade)
 --sheet contact sheet of every PNG in <dir>, labelled with the file name, for picking candidates
 """
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 
 def make_tileable(img: Image.Image) -> Image.Image:
@@ -32,8 +33,10 @@ def make_tileable(img: Image.Image) -> Image.Image:
     return Image.composite(img, shifted, mask)
 
 
-def pack(src: str, dest: str, max_px: int, quality: int, tile: bool) -> None:
+def pack(src: str, dest: str, max_px: int, quality: int, tile: bool, smooth: bool = False) -> None:
     img = Image.open(src).convert("RGB")
+    if smooth:
+        img = img.filter(ImageFilter.MedianFilter(3)).filter(ImageFilter.GaussianBlur(1.5))
     if tile:
         img = make_tileable(img)
     img.thumbnail((max_px, max_px), Image.LANCZOS)
@@ -68,4 +71,4 @@ if __name__ == "__main__":
         sheet(a[1], a[2])
     else:
         opt = lambda k, d: a[a.index(k) + 1] if k in a else d
-        pack(a[0], a[1], int(opt("--max", "2048")), int(opt("--quality", "82")), "--tile" in a)
+        pack(a[0], a[1], int(opt("--max", "2048")), int(opt("--quality", "82")), "--tile" in a, "--smooth" in a)

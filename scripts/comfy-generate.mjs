@@ -1,6 +1,6 @@
 // Queue garage assets on the local ComfyUI and download the results.
 // usage: node scripts/comfy-generate.mjs <art/comfy/prompts.json | audio.json> [--only <id>]
-//   Each entry: { id, workflow, prompt, negative?, seeds: number[], width?, height?, seconds?, upscale? }.
+//   Each entry: { id, workflow, prompt, negative?, seeds: number[], width?, height?, seconds?, bpm?, keyscale?, upscale? }.
 //   The workflow (art/comfy/workflows/<workflow>.json, API format) is patched through nodes titled
 //   PROMPT, NEGATIVE, SEED, SIZE (width/height or seconds). Results land in art/comfy/out/<id>-<seed>.<ext>.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -60,6 +60,11 @@ for (const e of entries) {
     const size = byTitle(wf, "SIZE")?.inputs;
     if (size && e.width) Object.assign(size, { width: e.width, height: e.height });
     if (size && e.seconds) size.seconds = e.seconds;
+    // text-to-audio encoders carry their own seed, length, tempo and key
+    const enc = byTitle(wf, "PROMPT").inputs;
+    if (enc.seed !== undefined) enc.seed = seed;
+    for (const k of ["bpm", "keyscale"]) if (e[k] !== undefined && enc[k] !== undefined) enc[k] = e[k];
+    if (e.seconds && enc.duration !== undefined) enc.duration = e.seconds;
     const t0 = Date.now();
     const [item] = await run(wf);
     const ext = path.extname(item.filename);

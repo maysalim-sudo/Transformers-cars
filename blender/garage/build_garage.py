@@ -91,8 +91,8 @@ def material(name, color=(0.5, 0.5, 0.5), rough=0.5, metal=0.0, emit=None, stren
 
 
 M = {
-    "floor_epoxy": material("floor_epoxy", (0.62, 0.63, 0.65), rough=0.28, tex="epoxy_floor.png"),
-    "wall_panel": material("wall_panel", (0.025, 0.025, 0.028), rough=0.85, tex="wall_panel.png"),
+    "floor_epoxy": material("floor_epoxy", (0.62, 0.63, 0.65), rough=0.28, tex="epoxy_floor.jpg"),
+    "wall_panel": material("wall_panel", (0.025, 0.025, 0.028), rough=0.85, tex="wall_panel.jpg"),
     "matte_black": material("matte_black", (0.012, 0.012, 0.014), rough=0.6),
     "chrome": material("chrome", (0.8, 0.8, 0.82), rough=0.15, metal=1),
     "door_metal": material("door_metal", (0.18, 0.19, 0.2), rough=0.35, metal=0.8),
@@ -102,8 +102,8 @@ M = {
     "glass_booth": material("glass_booth", (0.75, 0.82, 0.9), rough=0.05, alpha=0.12),
     "booth_light": material("booth_light", (1, 1, 1), emit=(1, 0.98, 0.95), strength=6),
     "sign_logo": material("sign_logo", (0, 0, 0), emit=(1, 1, 1), strength=1.5, tex=None),
-    "street_plate": material("street_plate", (0.05, 0.06, 0.1), emit=(1, 1, 1), strength=1.0, tex="street_night.png"),
-    "showroom_art": material("showroom_art", (0.1, 0.1, 0.1), emit=(1, 1, 1), strength=0.8, tex="showroom_art.png"),
+    "street_plate": material("street_plate", (0.05, 0.06, 0.1), emit=(1, 1, 1), strength=1.0, tex="street_night.jpg"),
+    "showroom_art": material("showroom_art", (0.1, 0.1, 0.1), emit=(1, 1, 1), strength=0.8, tex="showroom_art.jpg"),
     "asphalt": material("asphalt", (0.035, 0.035, 0.04), rough=0.55),
     "floor_show": material("floor_show", (0.01, 0.01, 0.012), rough=0.08),
     "turntable_metal": material("turntable_metal", (0.07, 0.07, 0.08), rough=0.25, metal=0.8),
@@ -217,7 +217,7 @@ mid = (DOOR + SPLIT) / 2
 plane("floor_workshop", SPLIT, DOOR, -HW, HW, 0, M["floor_epoxy"], "workshop", tile=2.0)
 plane("lot", DOOR, DOOR + 40, -30, 30, -0.01, M["asphalt"], "workshop", tile=4.0)
 for s in (-1, 1):
-    box(f"wall_{'left' if s > 0 else 'right'}", (length, H, 0.2), (mid, H / 2, s * (HW + 0.1)), M["wall_panel"], "workshop", tile=1.2)
+    box(f"wall_{'left' if s > 0 else 'right'}", (length, H, 0.2), (mid, H / 2, s * (HW + 0.1)), M["wall_panel"], "workshop", tile=3.6)
 box("ceiling", (length, 0.2, HW * 2 + 0.4), (mid, H + 0.1, 0), M["matte_black"], "workshop")
 # continuous LED lines: three along the ceiling, one round the walls at 2.6 m
 for z in (-2.6, 0, 2.6):
@@ -353,7 +353,7 @@ box("portal_top", (0.3, 0.3, HW * 2), (SPLIT, H, 0), M["matte_black"], "workshop
 plane("floor_showroom", SHOW_END, SPLIT, -SHOW_HW, SHOW_HW, 0, M["floor_show"], "showroom", tile=2.0)
 box("show_ceiling", (SPLIT - SHOW_END, 0.2, SHOW_HW * 2), ((SPLIT + SHOW_END) / 2, SHOW_H, 0), M["matte_black"], "showroom")
 for s in (-1, 1):
-    box(f"show_wall_{s:+d}", (SPLIT - SHOW_END, SHOW_H, 0.2), ((SPLIT + SHOW_END) / 2, SHOW_H / 2, s * (SHOW_HW + 0.1)), M["wall_panel"], "showroom", tile=1.2)
+    box(f"show_wall_{s:+d}", (SPLIT - SHOW_END, SHOW_H, 0.2), ((SPLIT + SHOW_END) / 2, SHOW_H / 2, s * (SHOW_HW + 0.1)), M["wall_panel"], "showroom", tile=3.6)
     box(f"show_header_{s:+d}", (0.2, SHOW_H - H, SHOW_HW - HW), (SPLIT, H + (SHOW_H - H) / 2, s * (HW + (SHOW_HW - HW) / 2)), M["matte_black"], "showroom")
     box(f"show_return_{s:+d}", (0.2, H, SHOW_HW - HW), (SPLIT, H / 2, s * (HW + (SHOW_HW - HW) / 2)), M["matte_black"], "showroom")
     for j, x in enumerate((SHOW + 4, SHOW - 4)):
@@ -375,8 +375,9 @@ for i in range(1, segs, 2):
     x, z = pts[i]
     box(f"slat_{i}", (0.05, 6.5, 0.05), (x + 0.12 * (SHOW - x) / R, 4.0, z * (1 - 0.12 / R)), M["led_strip"])
 # turntable + amber ring
-tt = cylinder("turntable", L["turntable"]["radius"], 0.14, (SHOW, 0.07, 0), M["turntable_metal"], segs=96)
-torus("turntable_ring", L["turntable"]["radius"] + 0.06, 0.025, (SHOW, 0.13, 0), M["amber_accent"])
+# set into the floor: its top is flush, so the car rolls straight on
+tt = cylinder("turntable", L["turntable"]["radius"], 0.14, (SHOW, -0.069, 0), M["turntable_metal"], segs=96)
+torus("turntable_ring", L["turntable"]["radius"] + 0.06, 0.02, (SHOW, 0.0, 0), M["amber_accent"])
 # overhead truss ring with the eight fixtures
 rig = L["rig"]
 torus("truss", rig["radius"], 0.07, (SHOW, rig["height"], 0), M["chrome"], "showroom")
@@ -399,4 +400,4 @@ w.node_tree.nodes["Background"].inputs[1].default_value = 1.0
 scene.world = w
 if bpy.app.background:
     bpy.ops.wm.save_as_mainfile(filepath=BLEND)
-print("built", len(GARAGE.objects), "objects;", "textures:", [n for n in ("epoxy_floor.png", "wall_panel.png", "street_night.png", "showroom_art.png") if image(n)])
+print("built", len(GARAGE.objects), "objects;", "textures:", [n for n in ("epoxy_floor.jpg", "wall_panel.jpg", "street_night.jpg", "showroom_art.jpg") if image(n)])

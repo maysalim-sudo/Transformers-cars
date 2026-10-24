@@ -17,7 +17,7 @@ for o in garage.all_objects:
     o.select_set(True)
 bpy.ops.export_scene.gltf(
     filepath=out, export_format="GLB", use_selection=True, export_apply=True, export_extras=True, export_yup=True,
-    export_cameras=False, export_lights=False, export_animations=True,
+    export_cameras=False, export_lights=False, export_animations=True, export_image_format="WEBP", export_image_quality=80,
 )
 size = os.path.getsize(out)
 assert size <= 3_000_000, f"garage.glb is {size} bytes, over the 3 MB budget"

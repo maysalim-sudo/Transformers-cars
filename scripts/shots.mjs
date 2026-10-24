@@ -3,6 +3,10 @@
 //   fractions: comma list of hero-track progress (0–1) or absolute scroll offsets as y<px>
 //   --reduced  emulate prefers-reduced-motion
 //   --raf      instead of screenshots, count requestAnimationFrame calls over 2 s at each position, after a 3.5 s settle
+//   --nowebgl  launch Chrome with WebGL off (the garage hero must fall back to its stills)
+//   --lose-context  after load, force the garage canvas to lose its WebGL context
+//   --block=<s>     abort every request whose URL contains <s> (e.g. --block=garage.glb)
+//   fractions are of the hero track: [data-garage-track] when present, else the first section in main
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright-core";
 
@@ -15,8 +19,10 @@ const base = process.env.BASE_URL ?? "http://localhost:3100";
 const out = "shots";
 mkdirSync(out, { recursive: true });
 
+const defaultChrome = process.platform === "win32" ? "C:/Program Files/Google/Chrome/Application/chrome.exe" : "/usr/bin/google-chrome";
 const browser = await chromium.launch({
-  executablePath: process.env.CHROME_PATH ?? "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  executablePath: process.env.CHROME_PATH ?? defaultChrome,
+  args: flags.has("--nowebgl") ? ["--disable-webgl", "--disable-3d-apis"] : [],
 });
 const page = await browser.newPage({
   viewport: { width: Number(w), height: Number(h) },
@@ -32,12 +38,20 @@ if (flags.has("--raf")) {
     };
   });
 }
+const block = [...flags].find((f) => f.startsWith("--block="))?.slice(8);
+if (block) await page.route((url) => url.href.includes(block), (route) => route.abort());
+const pageErrors = [];
+page.on("pageerror", (e) => pageErrors.push(e.message));
 await page.goto(base + path, { waitUntil: "networkidle" });
+if (flags.has("--lose-context")) {
+  await page.waitForTimeout(4000);
+  await page.evaluate(() => document.querySelector("[data-garage-track] canvas")?.getContext("webgl2")?.getExtension("WEBGL_lose_context")?.loseContext());
+}
 await page.waitForTimeout(800);
 
 const scrollTo = (f) =>
   page.evaluate((f) => {
-    const track = document.querySelector("main section");
+    const track = document.querySelector("[data-garage-track]") ?? document.querySelector("main section");
     const travel = track ? track.offsetHeight - innerHeight : 0;
     const y = f.startsWith("y") ? Number(f.slice(1)) : Math.round(Number(f) * travel);
     window.scrollTo({ top: y, behavior: "instant" });
@@ -61,7 +75,9 @@ for (const f of fractions.split(",")) {
   await page.screenshot({ path: file });
   const overflow = sw > iw;
   failed ||= overflow;
-  console.log(`${file} scrollWidth=${sw} innerWidth=${iw} ${overflow ? "OVERFLOW" : "ok"}`);
+  const mode = await page.evaluate(() => document.querySelector("[data-garage-track]")?.dataset.mode ?? "-");
+  console.log(`${file} scrollWidth=${sw} innerWidth=${iw} mode=${mode} ${overflow ? "OVERFLOW" : "ok"}`);
 }
 await browser.close();
-process.exit(failed ? 1 : 0);
+if (pageErrors.length) console.log(`PAGE ERRORS:\n${pageErrors.join("\n")}`);
+process.exit(failed || pageErrors.length ? 1 : 0);

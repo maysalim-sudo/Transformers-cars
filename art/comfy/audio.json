@@ -1,0 +1,20 @@
+[
+  {
+    "id": "music_bed",
+    "workflow": "music_ace15",
+    "prompt": "instrumental, minimal cinematic electronic, deep warm sub bass, clean tight percussion, soft analog synth pads, premium automotive showroom, confident, sleek, no vocals",
+    "seeds": [101, 202, 303],
+    "seconds": 60,
+    "bpm": 100,
+    "keyscale": "A minor"
+  },
+  {
+    "id": "music_sting",
+    "workflow": "music_ace15",
+    "prompt": "instrumental, short cinematic rising hit and impact, deep sub drop, bright synth shimmer tail, reveal moment, no vocals",
+    "seeds": [11, 22, 33],
+    "seconds": 8,
+    "bpm": 100,
+    "keyscale": "A minor"
+  }
+]

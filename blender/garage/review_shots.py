@@ -62,7 +62,7 @@ scene.view_settings.view_transform = "AgX"
 for name in ARGS.get("shots", ",".join(SHOTS)).split(","):
     x, off, look = SHOTS[name]
     root.location = W(x, 0, 0)
-    root.rotation_euler = (0, 0, math.pi if name == "showroom" else 0)
+    root.rotation_euler = (0, 0, math.pi if name == "showroom" and ARGS.get("turn", "1") == "1" else 0)
     cam.location = W(x + off[0], off[1], off[2])
     d = W(x + look[0], look[1], look[2]) - cam.location
     cam.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()

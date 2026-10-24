@@ -32,6 +32,8 @@ export type GarageState = {
   tintSweep: number;
   transition: number;
   coverPull: number;
+  /** the cover only exists once the car is parked under it, in the dark */
+  coverVisible: boolean;
   showLights: number[];
   /** rad */
   tableTurn: number;
@@ -52,11 +54,14 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 /** up over [a, b], back down over [c, d] */
 const visit = (a: number, b: number, c: number, d: number, p: number) => ss(a, b, p) * (1 - ss(c, d, p));
 
+/** the darkest moment of the transition into the showroom: the car is parked and the cover appears */
+const DARKEST = 0.855;
+
 // car x along the hall: drive, hold in each bay, drive on
 const B = layout.bays;
 const route: [number, number][] = [
   [0, layout.start], [0.02, layout.start], [0.13, B.wheels], [0.26, B.wheels], [0.32, B.stance], [0.41, B.stance],
-  [0.47, B.kit], [0.56, B.kit], [0.62, B.paint], [0.73, B.paint], [0.78, B.tint], [0.84, B.tint], [0.9, layout.show],
+  [0.47, B.kit], [0.56, B.kit], [0.62, B.paint], [0.73, B.paint], [0.78, B.tint], [0.84, B.tint], [DARKEST, layout.show],
 ];
 // peak speed of a smoothstep segment is 1.5 × its average
 const maxSpeed = Math.max(...route.slice(1).map(([p1, x1], i) => (1.5 * Math.abs(x1 - route[i][1])) / (p1 - route[i][0])));
@@ -146,8 +151,9 @@ export function stateAt(p: number, opts: { portrait?: boolean; wheelRadius?: num
     mist: visit(0.6, 0.63, 0.71, 0.74, p),
     paintSweep: ss(0.6, 0.71, p),
     tintSweep: ss(0.76, 0.83, p),
-    transition: visit(0.84, 0.855, 0.855, 0.87, p),
+    transition: visit(0.84, DARKEST, DARKEST, 0.87, p),
     coverPull: ss(0.88, 0.93, p),
+    coverVisible: p >= DARKEST && p < 0.93,
     showLights: Array.from({ length: layout.rig.count }, (_, i) => ss(LIGHT_ON(i), LIGHT_ON(i) + 0.015, p)),
     tableTurn: Math.PI * ss(0.9, 1, p),
     headlights: flashing ? (Math.sin((p - 0.93) * 260) > 0 ? 1 : 0) : p >= 0.955 ? 1 : 0,

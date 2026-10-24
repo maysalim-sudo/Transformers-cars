@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { PartRender } from "@/car/PartRender";
 import { ColourStudio } from "@/components/ColourStudio";
-import { HeroSequence } from "@/components/HeroSequence";
+import { GarageHero } from "@/components/GarageHero";
 import { FeaturedCars } from "@/components/showroom/FeaturedCars";
 import { WhatsAppIcon } from "@/components/WhatsAppFloat";
 import { garage } from "@/config/garage";
@@ -27,7 +27,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
   return (
     <>
-      <HeroSequence locale={locale} t={t} />
+      <GarageHero locale={locale} t={t} />
 
       {/* Services: solid surfaces, nothing shows through */}
       <section id="services" className="relative z-10 scroll-mt-16 border-t border-line bg-ink-950 py-24 sm:py-32">

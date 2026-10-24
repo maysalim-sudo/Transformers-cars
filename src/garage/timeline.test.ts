@@ -73,6 +73,19 @@ describe("garage timeline", () => {
     }
   });
 
+  it("parks the car on the turntable in the dark, before the cover appears over it", () => {
+    const darkest = 0.855;
+    expect(stateAt(darkest).carX).toBe(layout.show);
+    expect(stateAt(darkest - 0.001).coverVisible).toBe(false);
+    expect(stateAt(darkest).coverVisible).toBe(true);
+    // the car must never be seen driving into the showroom while the cover is up
+    for (const p of range(0.84, 1)) {
+      const s = stateAt(p);
+      if (s.coverVisible) expect(s.carX, `p=${p}`).toBe(layout.show);
+    }
+    expect(stateAt(0.93).coverVisible).toBe(false);
+  });
+
   it("is a pure function of scroll progress", () => {
     const ps = Array.from({ length: 50 }, (_, i) => ((i * 37) % 101) / 100);
     const first = ps.map((p) => stateAt(p));
