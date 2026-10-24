@@ -53,6 +53,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
   const jobs = useRef<(HTMLElement | null)[]>([]);
   const callouts = useRef<(HTMLElement | null)[]>([]);
   const bar = useRef<HTMLDivElement>(null);
+  const scrim = useRef<HTMLDivElement>(null);
   const waText = getStrings(shop.messageLocale).message.general;
   const sound = useRef<SoundEngine | null>(null);
   const [soundOn, setSoundOn] = useState(false);
@@ -133,6 +134,8 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
         if (!el) return;
         el.dataset.state = s.done[i] ? "done" : s.bay === i + 1 ? "active" : "todo";
       });
+      // the headline has no card: shade the scene behind it while it shows
+      if (scrim.current) scrim.current.style.opacity = s.bay === 0 ? "1" : "0";
       if (bar.current) bar.current.style.transform = `scaleX(${pNow.toFixed(4)})`;
       const still = STILL_OF_BAY[s.bay];
       if (still !== lastStill) {
@@ -326,6 +329,14 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
             )}
           </svg>
         </button>
+
+        {/* shade behind the headline, so the lit garage does not fight the words: an ellipse behind the text on wide
+            screens (mirrored in RTL), leaving the sign bright, from the bottom on phones where the headline sits low */}
+        <div
+          ref={scrim}
+          aria-hidden
+          className="pointer-events-none absolute inset-0 transition-opacity duration-700 bg-[linear-gradient(to_top,rgb(5_6_8/.92)_0%,rgb(5_6_8/.75)_38%,transparent_70%)] sm:bg-[radial-gradient(ellipse_62%_58%_at_0%_74%,rgb(5_6_8/.9)_0%,rgb(5_6_8/.62)_50%,transparent_100%)] sm:rtl:bg-[radial-gradient(ellipse_62%_58%_at_100%_74%,rgb(5_6_8/.9)_0%,rgb(5_6_8/.62)_50%,transparent_100%)]"
+        />
 
         {/* bay 0: the headline; bays 1–6: one card each */}
         <div
