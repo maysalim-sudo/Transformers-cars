@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
@@ -81,7 +82,8 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
   const tierCbs: ((tier: Tier) => void)[] = [];
   const lost: (() => void)[] = [];
 
-  const loader = new GLTFLoader();
+  // garage.glb is meshopt-compressed (scripts/compress-glb.sh)
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const ready = (async () => {
     const [w, carGltf] = await Promise.all([loadWorld(loader, scene, phone), loader.loadAsync(heroCar.url)]);
     if (disposed) return w.dispose();

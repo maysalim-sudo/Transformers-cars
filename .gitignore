@@ -55,3 +55,4 @@ next-env.d.ts
 *.blend1
 /art/garage-stills/
 /art/garage-bake/
+public/garage/garage.raw.glb
