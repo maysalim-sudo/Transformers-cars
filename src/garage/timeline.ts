@@ -38,7 +38,8 @@ export type GarageState = {
   /** rad */
   tableTurn: number;
   headlights: number;
-  camera: { pos: Vec3; look: Vec3 };
+  /** `focus`: the world point depth of field focuses on (the part being worked on); fov in degrees */
+  camera: { pos: Vec3; look: Vec3; focus: Vec3; fov: number };
 };
 
 /** Start of bays 1–6 (wheels, stance, kit, paint, tint, reveal). Bay 0 is the arrival. */
@@ -79,30 +80,77 @@ function drive(p: number): { x: number; speed: number } {
   return { x: layout.show, speed: 0 };
 }
 
+/**
+ * A desktop camera shot, as a film crew frames it: an orbit round a point on the car. `look` is that point
+ * (car-local metres, also the focus); azimuth is the bearing round it in degrees (0 = the car's left side,
+ * +z; 90 = behind the tail, +x), elevation is degrees above it, distance is metres. Keys are authored
+ * unwrapped (the end orbit runs to 320°), so interpolating the plain numbers never flips round the car.
+ * `linear` eases the segment ending at that key at constant speed instead of in and out.
+ */
+export type Shot = { p: number; azimuth: number; elevation: number; distance: number; look: Vec3; fov: number; linear?: boolean };
+
+// the parts each bay works on: centre of the part plus its callout offset (heroCar.anchors), measured from suv.glb
+const AT = {
+  wheel: [-1.282, 0.36, 0.924] as Vec3,
+  fender: [-1.269, 0.277, 0.815] as Vec3,
+  kit: [0.311, 0.323, 0.3] as Vec3,
+  roof: [1.099, 1.393, 0] as Vec3,
+  glass: [0.777, 1.274, 0.41] as Vec3,
+  body: [0, 0.85, 0] as Vec3,
+};
+const shot = (p: number, azimuth: number, elevation: number, distance: number, look: Vec3, fov: number, linear?: boolean): Shot => ({ p, azimuth, elevation, distance, look, fov, linear });
+/** alongside the car at wheel-arch height, slightly behind, on a long lens */
+const track = (p: number) => shot(p, 19, 3, 7, AT.body, 30);
+// each bay: the camera arrives as the car stops, then orbits its part while the work happens, the
+// direction alternating bay to bay; the drives between are tracking shots
+const shots: Shot[] = [
+  shot(0, 67.9, -1.3, 17.8, [-6, 2.2, -3.2], 36), // arrival: the street, the facade and the sign
+  shot(0.02, 67.9, -1.3, 17.8, [-6, 2.2, -3.2], 36),
+  track(0.065),
+  track(0.1025),
+  shot(0.13, -55, 10, 4.2, AT.wheel, 34), // wheels
+  shot(0.26, -20, 10, 4.2, AT.wheel, 34),
+  track(0.29),
+  shot(0.32, -15, 2, 3.4, AT.fender, 32), // stance, low at the arch
+  shot(0.41, -50, 2, 3.4, AT.fender, 32),
+  track(0.44),
+  shot(0.47, 55, 10, 6, AT.kit, 34), // body kit, round the tail
+  shot(0.56, 95, 10, 6, AT.kit, 34),
+  track(0.59),
+  shot(0.62, 0, 12, 6, AT.roof, 34), // paint booth, from outside its glass side
+  shot(0.73, -35, 12, 6, AT.roof, 34),
+  track(0.755),
+  shot(0.78, -20, 5, 4, AT.glass, 32), // tint
+  shot(0.84, 15, 5, 4, AT.glass, 32),
+  shot(0.86, -71.3, 3.3, 6.9, [0, 0.9, 0], 36), // the dark showroom, the cover over the car
+  // from the cover pull, one full turn round the car at constant speed, ending on the front three-quarter
+  // a little before the end of the track, so the last stretch holds the final frame
+  shot(0.9, -40, 8, 6, [0, 0.8, 0], 34),
+  shot(0.99, 320, 8, 6, [0, 0.8, 0], 34, true),
+  shot(1, 320, 8, 6, [0, 0.8, 0], 34),
+];
+
+/** How high the lift raises the car (the scene's car rig uses the same value). */
+const LIFT_HEIGHT = 0.55;
+const PORTRAIT_FOV = 52;
+
+function shotAt(p: number): { offset: Vec3; look: Vec3; fov: number } {
+  let i = 1;
+  while (i < shots.length - 1 && p > shots[i].p) i++;
+  const a = shots[i - 1];
+  const b = shots[i];
+  const t = b.linear ? clamp01((p - a.p) / (b.p - a.p)) : ss(a.p, b.p, p);
+  const deg = Math.PI / 180;
+  const az = lerp(a.azimuth, b.azimuth, t) * deg;
+  const el = lerp(a.elevation, b.elevation, t) * deg;
+  const d = lerp(a.distance, b.distance, t);
+  const look = a.look.map((v, k) => lerp(v, b.look[k], t)) as Vec3;
+  const offset: Vec3 = [look[0] + d * Math.sin(az) * Math.cos(el), look[1] + d * Math.sin(el), look[2] + d * Math.cos(az) * Math.cos(el)];
+  return { offset, look, fov: lerp(a.fov, b.fov, t) };
+}
+
 // camera: [p, offset from the car, look target from the car]
 type Key = [number, Vec3, Vec3];
-const cams: Key[] = [
-  [0.0, [10.5, 1.8, 3.5], [-6, 2.2, -3.2]],
-  [0.06, [7, 1.8, 7], [-4, 1, 0]],
-  [0.12, [4, 1.7, 6.5], [-1, 0.9, 0]],
-  [0.16, [-5.6, 2.3, 4.6], [0, 1.1, 0]],
-  [0.21, [-2.6, 1.1, 3.4], [-1.3, 1, 0.6]],
-  [0.25, [-5.2, 2, 4.8], [0, 1, 0]],
-  [0.3, [4, 2.2, 6.5], [-1, 0.8, 0]],
-  [0.36, [-1.8, 0.35, 3.2], [-1.2, 0.5, 0.6]],
-  [0.4, [-0.5, 0.45, 5.4], [0, 0.6, 0]],
-  [0.45, [4, 2, 6.5], [-1, 0.8, 0]],
-  [0.5, [-5.5, 1.3, 4.2], [-1.2, 0.6, 0]],
-  [0.55, [4.8, 1.1, 3.8], [1.3, 0.6, 0]],
-  [0.6, [3, 2.4, 6.5], [-1, 0.9, 0]],
-  [0.66, [-4.2, 2.7, 5.2], [0, 0.8, 0]],
-  [0.72, [-3, 1.6, 5.5], [0, 0.9, 0]],
-  [0.77, [-1, 1.35, 4.4], [0, 1.25, 0]],
-  [0.82, [-1.5, 1.3, 4.6], [0, 1.2, 0]],
-  [0.86, [-6.5, 1.3, 2.2], [0, 0.9, 0]],
-  [0.9, [5.5, 2.2, 6.5], [-1.5, 1.1, 0]],
-  [1.0, [6.2, 1.5, 4.6], [-1.2, 1.2, -0.6]],
-];
 // tall screens (phones): overhead while the car drives, so its length runs up the screen; a three-quarter
 // view at each bay so the work shows; low for the reveal. Over the paint booth the camera stays under its
 // 3.4 m roof, so it dips before the car goes in and rises only once it is out.
@@ -161,7 +209,8 @@ export function stateAt(p: number, opts: { portrait?: boolean; wheelRadius?: num
   const { portrait = false, wheelRadius = 0.36 } = opts;
   const { x: carX, speed } = drive(p);
   const lift = visit(0.15, 0.18, 0.245, 0.265, p);
-  const cam = cameraAt(portrait ? portraitCams : cams, p);
+  const cam = portrait ? { ...cameraAt(portraitCams, p), fov: PORTRAIT_FOV } : shotAt(p);
+  const look: Vec3 = [carX + cam.look[0], cam.look[1] + lift * (portrait ? 0.5 : LIFT_HEIGHT), cam.look[2]];
   const flashing = p > 0.93 && p < 0.955;
 
   return {
@@ -186,11 +235,14 @@ export function stateAt(p: number, opts: { portrait?: boolean; wheelRadius?: num
     coverPull: ss(0.88, 0.93, p),
     coverVisible: p >= DARKEST && p < 0.93,
     showLights: Array.from({ length: layout.rig.count }, (_, i) => ss(LIGHT_ON(i), LIGHT_ON(i) + 0.015, p)),
-    tableTurn: Math.PI * ss(0.9, 1, p),
+    // the turntable holds still: the camera's orbit is the motion
+    tableTurn: 0,
     headlights: flashing ? (Math.sin((p - 0.93) * 260) > 0 ? 1 : 0) : p >= 0.955 ? 1 : 0,
     camera: {
-      pos: [carX + cam.offset[0], cam.offset[1] + lift * 0.3, insideWalls(carX + cam.offset[0], cam.offset[2])],
-      look: [carX + cam.look[0], cam.look[1] + lift * 0.5, cam.look[2]],
+      pos: [carX + cam.offset[0], cam.offset[1] + lift * (portrait ? 0.3 : LIFT_HEIGHT), insideWalls(carX + cam.offset[0], cam.offset[2])],
+      look,
+      focus: look,
+      fov: cam.fov,
     },
   };
 }

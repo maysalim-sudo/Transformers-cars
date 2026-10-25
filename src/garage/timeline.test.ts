@@ -110,6 +110,76 @@ describe("garage timeline", () => {
     }
   });
 
+  describe("film-crew camera (desktop)", () => {
+    /** the camera's bearing round its look target, in degrees, unwrapped along the scroll */
+    const bearing = (p: number) => {
+      const { pos, look } = stateAt(p).camera;
+      return (Math.atan2(pos[0] - look[0], pos[2] - look[2]) * 180) / Math.PI;
+    };
+    const swept = (a: number, b: number) => {
+      let total = 0;
+      for (const p of range(a, b, 0.001).slice(1)) {
+        let d = bearing(p) - bearing(Math.round((p - 0.001) * 1e6) / 1e6);
+        d -= 360 * Math.round(d / 360);
+        total += d;
+      }
+      return total;
+    };
+    /** where the car holds still in each bay */
+    const HOLDS: [number, number][] = [[0.13, 0.26], [0.32, 0.41], [0.47, 0.56], [0.62, 0.73], [0.78, 0.84]];
+
+    it("tracks alongside on the drives", () => {
+      for (const p of [0.075, 0.29, 0.44, 0.59, 0.755]) {
+        const s = stateAt(p);
+        expect(Math.abs(s.camera.pos[0] - s.carX), `p=${p} x`).toBeLessThanOrEqual(2.5);
+        expect(s.camera.pos[1], `p=${p} height`).toBeGreaterThanOrEqual(0.6);
+        expect(s.camera.pos[1], `p=${p} height`).toBeLessThanOrEqual(1.4);
+        expect(s.camera.fov, `p=${p} fov`).toBeLessThanOrEqual(32);
+      }
+    });
+
+    it("orbits each bay by 30–45°, alternating direction", () => {
+      const sweeps = HOLDS.map(([a, b]) => swept(a, b));
+      for (const [i, d] of sweeps.entries()) {
+        expect(Math.abs(d), `bay ${i + 1}`).toBeGreaterThanOrEqual(30);
+        expect(Math.abs(d), `bay ${i + 1}`).toBeLessThanOrEqual(45);
+        if (i > 0) expect(Math.sign(d), `bay ${i + 1} direction`).toBe(-Math.sign(sweeps[i - 1]));
+      }
+    });
+
+    it("circles the tuned car once from the cover pull to the end, the turntable holding still", () => {
+      expect(Math.abs(swept(0.9, 1))).toBeGreaterThanOrEqual(355);
+      expect(Math.abs(swept(0.9, 1))).toBeLessThanOrEqual(365);
+      for (const p of range(0.9, 1)) expect(stateAt(p).tableTurn, `p=${p}`).toBe(stateAt(0.9).tableTurn);
+    });
+
+    it("never flips or cuts, except in the dark between workshop and showroom", () => {
+      let prev = stateAt(0);
+      for (let i = 1; i <= 1000; i++) {
+        const s = stateAt(i / 1000);
+        const step = Math.hypot(...s.camera.pos.map((v, k) => v - prev.camera.pos[k]));
+        if (s.transition === 0 && prev.transition === 0) expect(step, `p=${i / 1000}`).toBeLessThan(0.6);
+        prev = s;
+      }
+    });
+
+    it("focuses on the part being worked on", () => {
+      // part centres plus the callout offsets (heroCar.anchors), car-local, measured from suv.glb
+      const parts: [number, [number, number, number]][] = [
+        [0.195, [-1.282, 0.36 + 0.55, 0.924]], // the front wheel, on the raised lift
+        [0.365, [-1.269, 0.277, 0.815]],
+        [0.515, [0.311, 0.323, 0.3]],
+        [0.675, [1.099, 1.393, 0]],
+        [0.81, [0.777, 1.274, 0.41]],
+      ];
+      for (const [p, [x, y, z]] of parts) {
+        const s = stateAt(p);
+        const [fx, fy, fz] = s.camera.focus;
+        expect(Math.hypot(fx - (s.carX + x), fy - y, fz - z), `p=${p}`).toBeLessThanOrEqual(0.01);
+      }
+    });
+  });
+
   describe("phone camera: overhead on the drives, dipping in at each bay", () => {
     /** how steeply the camera looks down, in degrees */
     const pitch = (p: number) => {

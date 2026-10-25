@@ -11,6 +11,7 @@ import { type RiggedCar, rigCar } from "./car";
 import { createEffects, type Effects } from "./effects";
 import { createGradePass } from "./grade";
 import { createGrounding, type Grounding } from "./grounding";
+import { createHandheld } from "./handheld";
 import { createLadder, TIER_FEATURES, type Tier } from "./quality";
 import { createFloorReflections, type FloorReflections } from "./reflections";
 import { loadWorld, type World } from "./world";
@@ -135,6 +136,8 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
   canvas.addEventListener("webglcontextlost", onContextLost);
 
   const look = new THREE.Vector3();
+  const handheld = createHandheld(reduced);
+  const DEG = Math.PI / 180;
   const v = new THREE.Vector3();
 
   const api: Garage = {
@@ -151,8 +154,15 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       effects.apply(s, car, dt);
       grounding.apply(s);
       renderer.toneMappingExposure = EXPOSURE * (1 - s.transition * 0.95);
-      camera.position.set(...s.camera.pos);
+      const sway = handheld.frame(now, s.camera.pos);
+      camera.position.set(...s.camera.pos).add(v.set(...sway.offset));
       camera.lookAt(look.set(...s.camera.look));
+      camera.rotateY(sway.yaw * DEG);
+      camera.rotateX(sway.pitch * DEG);
+      if (camera.fov !== s.camera.fov) {
+        camera.fov = s.camera.fov;
+        camera.updateProjectionMatrix();
+      }
     },
     render() {
       if (!car) return;
@@ -177,7 +187,6 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       reflections?.resize(w, h);
       bloom.resolution.set(phone ? w / 2 : w, phone ? h / 2 : h);
       camera.aspect = w / h;
-      camera.fov = portrait ? 52 : 36;
       camera.updateProjectionMatrix();
     },
     onSlow: (cb) => void slow.push(cb),
