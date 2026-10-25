@@ -1,0 +1,272 @@
+import * as THREE from "three";
+import type { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import layout from "../layout.json";
+import type { GarageState } from "../timeline";
+import { applySurfaces } from "./surfaces";
+import { toolAt, toolSpin } from "./tools";
+
+export type MovingNode = "door" | "lift_arms" | "gantry" | "turntable" | "cover";
+
+export type World = {
+  root: THREE.Object3D;
+  nodes: Partial<Record<MovingNode, THREE.Object3D>>;
+  /** car-local gantry placement is done by the scene, which knows the car's length */
+  apply(s: GarageState, opts: { carX: number; carLength: number }): void;
+  /** the beams of light under the workshop pools (a film effect: off at the low tier and on phones) */
+  setRays(on: boolean): void;
+  dispose(): void;
+};
+
+const BASE = "/garage/";
+const DOOR_TRAVEL = 3.4;
+const LIFT_HEIGHT = 0.55;
+const SPOT_POWER = 95;
+const SHAFT_ALPHA = 0.045;
+/** the workshop beams are fainter than the showroom's: haze under a work light, not a stage */
+const RAY_ALPHA = 0.028;
+/** the baked light per zone: the workshop's pools are held down so the car, lit live, stays the brightest thing */
+const LIGHTMAP_INTENSITY: Record<string, number> = { workshop: 0.6, showroom: 1 };
+
+/** a soft beam of light in hazy air, from a spot down to the floor: additive, brightest at the lamp */
+function shaftMaterial() {
+  return new THREE.ShaderMaterial({
+    uniforms: { intensity: { value: 0 }, color: { value: new THREE.Color("#ffe9c8") } },
+    vertexShader: /* glsl */ `
+      varying float vAlong;
+      varying float vEdge;
+      void main() {
+        vAlong = uv.y;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vec3 n = normalize(normalMatrix * normal);
+        vEdge = abs(dot(n, normalize(-mv.xyz)));
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform float intensity;
+      uniform vec3 color;
+      varying float vAlong;
+      varying float vEdge;
+      void main() {
+        float a = intensity * pow(vAlong, 1.6) * pow(vEdge, 2.0);
+        gl_FragColor = vec4(color * a, a);
+      }`,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+  });
+}
+
+async function loadLightmap(name: string): Promise<THREE.Texture | null> {
+  try {
+    const tex = await new THREE.TextureLoader().loadAsync(`${BASE}lm_${name}.webp`);
+    tex.channel = 1; // the baked UV set
+    tex.flipY = false;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  } catch {
+    return null; // not baked yet: live lights carry the scene
+  }
+}
+
+/** Loads the atelier (garage.glb), its baked lightmaps and the live lights that change during the scroll. */
+export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: boolean): Promise<World> {
+  const gltf = await loader.loadAsync(`${BASE}garage.glb`);
+  const root = gltf.scene;
+  scene.add(root);
+  const [workshop, showroom] = await Promise.all([loadLightmap("workshop"), loadLightmap("showroom")]);
+  const maps: Record<string, THREE.Texture | null> = { workshop, showroom };
+  const baked = Boolean(workshop && showroom);
+
+  const owned: THREE.Material[] = [];
+  const clones = new Map<string, THREE.Material>();
+  const byName = (name: string) => {
+    const out: THREE.MeshStandardMaterial[] = [];
+    root.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+      if (m?.name === name && !out.includes(m)) out.push(m);
+    });
+    return out;
+  };
+
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.receiveShadow = true;
+    // extras land on the glTF node; the mesh may be that node or its child primitive
+    const zone = (mesh.userData.lightmap ?? mesh.parent?.userData.lightmap) as string | undefined;
+    const map = zone ? maps[zone] : null;
+    if (!map) return;
+    const src = mesh.material as THREE.MeshStandardMaterial;
+    const key = `${src.uuid}:${zone}`;
+    if (!clones.has(key)) {
+      const m = src.clone();
+      m.lightMap = map;
+      m.lightMapIntensity = LIGHTMAP_INTENSITY[zone!] ?? 1;
+      owned.push(m);
+      clones.set(key, m);
+    }
+    mesh.material = clones.get(key)!;
+  });
+  // the floor and wall detail maps (about 420 KB) barely show on a phone's screen: phones skip them
+  const surfaces = phone ? null : await applySurfaces(root);
+
+  const nodes: World["nodes"] = {};
+  for (const name of ["door", "lift_arms", "gantry", "turntable", "cover"] as const) {
+    const n = root.getObjectByName(name);
+    if (n) nodes[name] = n;
+  }
+  // each tool rests on its cart (its own node) and works at its tool_<name>_work pose
+  const tools = (["wrench", "spring", "rivet", "squeegee"] as const).flatMap((name) => {
+    const node = root.getObjectByName(`tool_${name}`);
+    const work = root.getObjectByName(`tool_${name}_work`);
+    if (!node || !work) return [];
+    return [{ name, node, rest: node.position.toArray() as [number, number, number], work: work.position.toArray() as [number, number, number] }];
+  });
+  // phones draw less: props and tools more than a bay away from the car are hidden
+  const PROP = /^(cart_|compressor_|jack_stand_|reel_|heat_gun_|panel_|tool_)/;
+  const props: THREE.Object3D[] = [];
+  if (phone) root.children.forEach((o) => PROP.test(o.name) && props.push(o));
+  const rest = Object.fromEntries(Object.entries(nodes).map(([k, n]) => [k, n.position.clone()])) as Record<MovingNode, THREE.Vector3>;
+  // the cover rides on the turntable; its pull-off is a baked morph clip that the scroll scrubs
+  if (nodes.cover && nodes.turntable) nodes.turntable.attach(nodes.cover);
+  const mixer = new THREE.AnimationMixer(root);
+  const clip = gltf.animations.find((a) => a.name.startsWith("cover_pull"));
+  const pull = clip ? mixer.clipAction(clip) : null;
+  pull?.play();
+  if (pull) pull.paused = true;
+
+  // live lights: soft fill, one key per bay (only while unbaked), booth flare, the showroom rig
+  const lights: THREE.Light[] = [];
+  const add = <T extends THREE.Light>(l: T) => (scene.add(l), lights.push(l), l);
+  add(new THREE.HemisphereLight("#cfd6e2", "#2a2c30", baked ? 0.1 : 0.3));
+  if (!baked) {
+    for (const x of Object.values(layout.bays)) {
+      const s = add(new THREE.SpotLight("#ffffff", 22, 12, 0.7, 0.6, 1.2));
+      s.position.set(x, layout.hall.height - 0.3, 0);
+      s.target.position.set(x, 0, 0);
+      scene.add(s.target);
+    }
+  }
+  const booth = add(new THREE.PointLight("#fff4e0", 0, 9, 1.4));
+  booth.position.set(layout.bays.paint, 3, 0);
+  const spots: THREE.SpotLight[] = [];
+  for (let i = 0; i < layout.rig.count; i++) {
+    const e = root.getObjectByName(`spot_${i}`);
+    const s = add(new THREE.SpotLight("#fff1dc", 0, 18, 0.36, 0.55, 1.2));
+    if (e) e.getWorldPosition(s.position);
+    s.target.position.set(layout.show, 0.6, 0);
+    scene.add(s.target);
+    if (!phone && i % 3 === 0) {
+      s.castShadow = true;
+      s.shadow.mapSize.set(1024, 1024);
+      s.shadow.bias = -0.0004;
+    }
+    spots.push(s);
+  }
+  // visible beams under the rig, so the reveal reads as a lit stage in hazy air
+  const shaftMats: THREE.ShaderMaterial[] = [];
+  const shaftGeos: THREE.BufferGeometry[] = [];
+  const down = new THREE.Vector3(0, -1, 0);
+  for (const s of spots) {
+    const dir = s.target.position.clone().sub(s.position);
+    const length = dir.length();
+    const g = new THREE.ConeGeometry(Math.tan(s.angle * 0.8) * length, length, 32, 1, true);
+    g.translate(0, -length / 2, 0); // apex at the lamp
+    const m = shaftMaterial();
+    const shaft = new THREE.Mesh(g, m);
+    shaft.position.copy(s.position);
+    shaft.quaternion.setFromUnitVectors(down, dir.normalize());
+    shaft.renderOrder = 2;
+    // haze, not a surface: seen by the main camera only, never mirrored in the floor (layer 1)
+    shaft.layers.set(1);
+    scene.add(shaft);
+    shaftMats.push(m);
+    shaftGeos.push(g);
+    owned.push(m);
+    lights.push(shaft as unknown as THREE.Light);
+  }
+  // a beam of hazy light under each workshop pool, brightest while its bay is active
+  const POOLS = [layout.bays.wheels, layout.bays.stance, layout.bays.kit, layout.bays.paint, layout.bays.tint];
+  const rayMeshes = POOLS.map((x) => {
+    // the paint pool hangs above the booth roof: its beam starts under the roof, among the booth's lights
+    const top = x === layout.bays.paint ? layout.booth.height - 0.1 : layout.hall.height - 0.4;
+    const g = new THREE.ConeGeometry(1.7, top, 32, 1, true);
+    g.translate(0, top / 2, 0); // apex up at the lamp (brightest there), open on the floor
+    const m = shaftMaterial();
+    m.uniforms.color.value.set("#fff3e2");
+    const ray = new THREE.Mesh(g, m);
+    ray.position.x = x;
+    ray.renderOrder = 2;
+    ray.layers.set(1); // never mirrored in the floor
+    scene.add(ray);
+    shaftGeos.push(g);
+    owned.push(m);
+    lights.push(ray as unknown as THREE.Light);
+    return ray;
+  });
+  let rays = true;
+
+  // each lens gets its own material so the lights can come on one by one
+  const lenses: THREE.MeshStandardMaterial[] = [];
+  for (let i = 0; i < layout.rig.count; i++) {
+    const lens = root.getObjectByName(`lens_${i}`) as THREE.Mesh | undefined;
+    if (!lens) continue;
+    const m = (lens.material as THREE.MeshStandardMaterial).clone();
+    m.emissive.set("#fff1d6");
+    owned.push(m);
+    lens.material = m;
+    lenses[i] = m;
+  }
+  const boothPanels = byName("booth_light");
+  const boothBase = boothPanels.map((m) => m.emissiveIntensity);
+
+  return {
+    root,
+    nodes,
+    apply(s, { carX, carLength }) {
+      if (nodes.door) nodes.door.position.y = rest.door.y + s.doorOpen * DOOR_TRAVEL;
+      if (nodes.lift_arms) nodes.lift_arms.position.y = rest.lift_arms.y + s.lift * LIFT_HEIGHT;
+      // the spray gantry is the paint beam: nose to tail over the car
+      // (only in the paint bay; elsewhere it waits at its end of the booth)
+      if (nodes.gantry) nodes.gantry.position.x = s.bay === 4 ? carX + (-1.1 + 2.2 * s.paintSweep) * (carLength / 2) : rest.gantry.x;
+      if (nodes.turntable) nodes.turntable.rotation.y = s.tableTurn;
+      for (const o of props) o.visible = Math.abs(o.position.x - carX) < 12;
+      for (const t of tools) {
+        const v = s.tools[t.name];
+        const work: [number, number, number] = [...t.work];
+        if (t.name === "wrench") work[1] += s.lift * LIFT_HEIGHT; // the wheel is up on the lift
+        if (t.name === "squeegee") work[0] += (s.tintSweep - 0.5) * 1.2; // drawn along the glass with the film
+        t.node.position.set(...toolAt(t.rest, work, v));
+        if (t.name === "wrench" || t.name === "rivet") t.node.rotation.z = toolSpin(v);
+      }
+      if (nodes.cover) nodes.cover.visible = s.coverVisible;
+      if (pull && clip && s.coverVisible) {
+        pull.time = s.coverPull * clip.duration;
+        mixer.update(0);
+      }
+      booth.intensity = s.boothLight * 30;
+      boothPanels.forEach((m, i) => (m.emissiveIntensity = boothBase[i] * (1 + s.boothLight * 2.5)));
+      spots.forEach((l, i) => (l.intensity = s.showLights[i] * SPOT_POWER));
+      lenses.forEach((m, i) => m && (m.emissiveIntensity = s.showLights[i] * 8));
+      shaftMats.forEach((m, i) => (m.uniforms.intensity.value = s.showLights[i] * SHAFT_ALPHA));
+      rayMeshes.forEach((ray, i) => {
+        const intensity = rays ? s.poolLight[i] * RAY_ALPHA * (1 - s.transition) : 0;
+        (ray.material as THREE.ShaderMaterial).uniforms.intensity.value = intensity;
+        ray.visible = intensity > 0; // a dark beam still costs its fill rate: skip it
+      });
+    },
+    setRays(on) {
+      rays = on;
+    },
+    dispose() {
+      mixer.stopAllAction();
+      root.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
+      owned.forEach((m) => m.dispose());
+      shaftGeos.forEach((g) => g.dispose());
+      surfaces?.dispose();
+      lights.forEach((l) => l.removeFromParent());
+      Object.values(maps).forEach((t) => t?.dispose());
+    },
+  };
+}

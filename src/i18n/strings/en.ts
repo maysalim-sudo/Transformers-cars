@@ -11,53 +11,9 @@ const en = {
     contact: "Contact",
     language: "Language",
     home: "Home",
+    showroom: "Showroom",
   },
   concept: "Concept preview · placeholder content",
-  hero: {
-    eyebrow: "Tuning showroom · Sousse, Tunisia",
-    title: "Tuning for exceptional cars.",
-    lead: "Accessories, body styling, wheels and performance for luxury and sports cars. Plus consignment sales and rentals.",
-    primary: "Request an inspection",
-    secondary: "Message us on WhatsApp",
-    scroll: "Scroll to explore",
-  },
-  sequence: [
-    {
-      kicker: "01 · Understanding",
-      title: "Every component, considered.",
-      body: "Before we pick up a tool, we look at how your car is put together and how each part affects the others.",
-    },
-    {
-      kicker: "02 · Engine & performance",
-      title: "Power, refined.",
-      body: "Performance upgrades, exhaust systems and servicing, matched to your car.",
-    },
-    {
-      kicker: "03 · Wheels, brakes & suspension",
-      title: "Stance and control.",
-      body: "Wheels, brakes, springs and dampers chosen and fitted to suit the way you drive.",
-    },
-    {
-      kicker: "04 · Body styling",
-      title: "Every line, your way.",
-      body: "Body kits, aero, wraps and refinishing, fitted and finished in our workshop.",
-    },
-    {
-      kicker: "05 · Precision",
-      title: "Put back together with care.",
-      body: "Panel gaps, fixings and finishes checked before your car leaves the workshop.",
-    },
-    {
-      kicker: "06 · Transformation",
-      title: "Stock in. Transformed out.",
-      body: "Wheels, stance, body kit, colour and tint — fitted and finished in our workshop.",
-    },
-    {
-      kicker: "07 · Your car",
-      title: "Start your build.",
-      body: "Point to the parts on our interactive car, add a note, and send the request on WhatsApp.",
-    },
-  ],
   services: {
     kicker: "Services",
     title: "Everything your car can become.",
@@ -86,6 +42,18 @@ const en = {
     rental: "For rent",
     ask: "Ask about this car",
     exampleNote: "Example listings — real cars and photos come from the showroom.",
+    lead: "Consignment sales and rentals, prepared in our workshop.",
+    seeAll: "See the showroom",
+    back: "Back to the showroom",
+    details: "View details",
+    specs: "Details",
+    type: "Type",
+    year: "Year",
+    price: "Price",
+    priceOnRequest: "Price on request",
+    status: "Status",
+    empty: "No cars in this category right now.",
+    statuses: { available: "Available", reserved: "Reserved", sold: "Sold", rented: "Rented" },
   },
   contact: {
     kicker: "Contact",
@@ -212,6 +180,69 @@ const en = {
     general: "Hello, I would like some information about your services.",
     inquirySale: "Hello, I am interested in the {name} on consignment. Is it still available?",
     inquiryRental: "Hello, I would like to rent the {name}. When is it available?",
+  },
+  garage: {
+    eyebrow: "Garage · Showroom · Sousse",
+    title: "Drive in stock. Roll out transformed.",
+    lead: "Scroll to take a car through our workshop, bay by bay, all the way to the showroom floor.",
+    // phones get a one-screen hero (the car circling in the showroom), not the scroll story
+    leadPhone: "Wheels, stance, body kit, paint and tint: every car leaves our workshop transformed.",
+    scroll: "Scroll ↓",
+    jobCard: {
+      title: "Job card · #0427",
+      items: ["Wheels & calipers", "Stance −45 mm", "Body kit", "Paint", "Window tint", "Showroom"],
+    },
+    bays: [
+      {
+        kicker: "Bay 01 · Wheels & brakes",
+        title: "Up on the lift. New wheels on.",
+        body: "Gloss-black wheels and amber calipers, torqued and balanced in the first bay.",
+      },
+      {
+        kicker: "Bay 02 · Suspension",
+        title: "Lowered 45 mm.",
+        body: "Coilovers set the stance: closer to the road, tighter in the corners.",
+      },
+      {
+        kicker: "Bay 03 · Body styling",
+        title: "Skirts and diffuser.",
+        body: "Every panel fitted and aligned by hand before it goes to paint.",
+      },
+      {
+        kicker: "Bay 04 · Paint booth",
+        title: "Showroom amber.",
+        body: "Base, colour and clear coat, panel by panel, in a dust-free booth.",
+      },
+      {
+        kicker: "Bay 05 · Glass",
+        title: "Dark tint.",
+        body: "Privacy film and heat rejection, cut to every window.",
+      },
+      {
+        kicker: "06 · Showroom",
+        title: "Start your build.",
+        body: "Tell us what you drive and what you want it to become.",
+      },
+    ],
+    callouts: {
+      wheels: { label: "Wheels", value: "Forged · gloss black" },
+      stance: { label: "Stance", value: "−45 mm coilovers" },
+      kit: { label: "Body kit", value: "Skirts · diffuser" },
+      paint: { label: "Paint", value: "Showroom amber" },
+      tint: { label: "Glass", value: "Dark tint" },
+    },
+    spec: {
+      title: "Build #0427 · SUV",
+      rows: [
+        { label: "Wheels", value: "Forged · gloss black" },
+        { label: "Stance", value: "−45 mm" },
+        { label: "Body", value: "Skirts · diffuser" },
+        { label: "Paint", value: "Showroom amber" },
+        { label: "Glass", value: "Dark tint" },
+      ],
+    },
+    cta: { primary: "Start your build", secondary: "WhatsApp" },
+    sound: { on: "Sound on", off: "Sound off" },
   },
 };
 

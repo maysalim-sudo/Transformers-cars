@@ -1,0 +1,12 @@
+{
+  "start": 25,
+  "door": 16,
+  "bays": { "wheels": 10, "stance": 0, "kit": -10, "paint": -20, "tint": -28 },
+  "split": -34,
+  "show": -44,
+  "hall": { "halfWidth": 7, "height": 5.2 },
+  "showroom": { "halfWidth": 10, "height": 8, "backdrop": 9 },
+  "booth": { "length": 7, "width": 5.2, "height": 3.4 },
+  "turntable": { "radius": 3.4 },
+  "rig": { "count": 8, "radius": 5.2, "height": 7.2 }
+}

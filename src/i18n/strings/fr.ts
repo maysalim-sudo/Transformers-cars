@@ -13,53 +13,9 @@ const fr: Strings = {
     contact: "Contact",
     language: "Langue",
     home: "Accueil",
+    showroom: "Showroom",
   },
   concept: "Aperçu de concept · contenu provisoire",
-  hero: {
-    eyebrow: "Showroom tuning · Sousse, Tunisie",
-    title: "Le tuning des voitures d'exception.",
-    lead: "Accessoires, carrosserie, jantes et performance pour voitures de luxe et de sport. Dépôt-vente et location.",
-    primary: "Demander une inspection",
-    secondary: "Nous écrire sur WhatsApp",
-    scroll: "Faites défiler",
-  },
-  sequence: [
-    {
-      kicker: "01 · Comprendre",
-      title: "Chaque pièce compte.",
-      body: "Avant de prendre un outil, nous étudions l'architecture de votre voiture et l'influence de chaque pièce sur les autres.",
-    },
-    {
-      kicker: "02 · Moteur et performance",
-      title: "La puissance, affinée.",
-      body: "Préparation, lignes d'échappement et entretien, adaptés à votre voiture.",
-    },
-    {
-      kicker: "03 · Jantes, freinage et suspension",
-      title: "Posture et maîtrise.",
-      body: "Jantes, freins, ressorts et amortisseurs choisis et montés selon votre conduite.",
-    },
-    {
-      kicker: "04 · Carrosserie et style",
-      title: "Chaque ligne, à votre façon.",
-      body: "Kits carrosserie, aéro, covering et peinture, posés et finis dans notre atelier.",
-    },
-    {
-      kicker: "05 · Précision",
-      title: "Remontée avec soin.",
-      body: "Jeux de carrosserie, fixations et finitions vérifiés avant que votre voiture ne quitte l'atelier.",
-    },
-    {
-      kicker: "06 · Transformation",
-      title: "Entrée d'origine. Sortie transformée.",
-      body: "Jantes, assiette, kit carrosserie, teinte et vitres — posés et finis dans notre atelier.",
-    },
-    {
-      kicker: "07 · Votre voiture",
-      title: "Lancez votre projet.",
-      body: "Indiquez les pièces sur notre voiture interactive, ajoutez une note et envoyez la demande sur WhatsApp.",
-    },
-  ],
   services: {
     kicker: "Services",
     title: "Tout ce que votre voiture peut devenir.",
@@ -88,6 +44,18 @@ const fr: Strings = {
     rental: "À louer",
     ask: "Demander cette voiture",
     exampleNote: "Annonces d'exemple — les vraies voitures et photos viendront du showroom.",
+    lead: "Dépôt-vente et location, préparées dans notre atelier.",
+    seeAll: "Voir le showroom",
+    back: "Retour au showroom",
+    details: "Voir le détail",
+    specs: "Détails",
+    type: "Type",
+    year: "Année",
+    price: "Prix",
+    priceOnRequest: "Prix sur demande",
+    status: "Statut",
+    empty: "Aucune voiture dans cette catégorie pour le moment.",
+    statuses: { available: "Disponible", reserved: "Réservée", sold: "Vendue", rented: "Louée" },
   },
   contact: {
     kicker: "Contact",
@@ -214,6 +182,69 @@ const fr: Strings = {
     general: "Bonjour, je souhaite avoir des informations sur vos services.",
     inquirySale: "Bonjour, je suis intéressé(e) par la {name} en dépôt-vente. Est-elle toujours disponible ?",
     inquiryRental: "Bonjour, je souhaite louer la {name}. Quelles sont les disponibilités ?",
+  },
+  garage: {
+    eyebrow: "Garage · Showroom · Sousse",
+    title: "Entrée d'origine. Sortie transformée.",
+    lead: "Faites défiler pour suivre une voiture dans notre atelier, baie par baie, jusqu'au showroom.",
+    // phones get a one-screen hero (the car circling in the showroom), not the scroll story
+    leadPhone: "Jantes, assiette, kit, peinture, vitres : chaque voiture sort de notre atelier transformée.",
+    scroll: "Défiler ↓",
+    jobCard: {
+      title: "Fiche atelier · #0427",
+      items: ["Jantes & étriers", "Assiette −45 mm", "Kit carrosserie", "Peinture", "Vitres teintées", "Showroom"],
+    },
+    bays: [
+      {
+        kicker: "Baie 01 · Jantes & freins",
+        title: "Sur le pont. Nouvelles jantes.",
+        body: "Jantes noir brillant et étriers ambre, serrées et équilibrées dans la première baie.",
+      },
+      {
+        kicker: "Baie 02 · Suspension",
+        title: "Abaissée de 45 mm.",
+        body: "Les combinés filetés fixent l'assiette : plus près de la route, plus précise en virage.",
+      },
+      {
+        kicker: "Baie 03 · Carrosserie",
+        title: "Bas de caisse et diffuseur.",
+        body: "Chaque élément ajusté et aligné à la main avant la peinture.",
+      },
+      {
+        kicker: "Baie 04 · Cabine de peinture",
+        title: "Ambre showroom.",
+        body: "Apprêt, base et vernis, panneau par panneau, dans une cabine sans poussière.",
+      },
+      {
+        kicker: "Baie 05 · Vitrage",
+        title: "Teinte foncée.",
+        body: "Film intimité et anti-chaleur, découpé pour chaque vitre.",
+      },
+      {
+        kicker: "06 · Showroom",
+        title: "Lancez votre projet.",
+        body: "Dites-nous ce que vous conduisez et ce qu'elle doit devenir.",
+      },
+    ],
+    callouts: {
+      wheels: { label: "Jantes", value: "Forgées · noir brillant" },
+      stance: { label: "Assiette", value: "Combinés −45 mm" },
+      kit: { label: "Kit", value: "Bas de caisse · diffuseur" },
+      paint: { label: "Peinture", value: "Ambre showroom" },
+      tint: { label: "Vitrage", value: "Teinte foncée" },
+    },
+    spec: {
+      title: "Projet #0427 · SUV",
+      rows: [
+        { label: "Jantes", value: "Forgées · noir brillant" },
+        { label: "Assiette", value: "−45 mm" },
+        { label: "Carrosserie", value: "Bas de caisse · diffuseur" },
+        { label: "Peinture", value: "Ambre showroom" },
+        { label: "Vitrage", value: "Teinte foncée" },
+      ],
+    },
+    cta: { primary: "Lancez votre projet", secondary: "WhatsApp" },
+    sound: { on: "Son activé", off: "Son coupé" },
   },
 };
 

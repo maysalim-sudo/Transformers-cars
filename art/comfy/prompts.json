@@ -1,0 +1,85 @@
+[
+  {
+    "id": "street_night",
+    "workflow": "zimage_t2i",
+    "prompt": "wide cinematic photograph of a quiet modern street in Sousse, Tunisia at night, whitewashed low buildings with blue shutters, two palm trees, wet dark asphalt reflecting warm street lamps, deep blue night sky, no people, no cars, no signs, no readable text, no logos, photorealistic, 35mm, soft haze",
+    "negative": "text, letters, signage, logos, watermark, people, cars, cartoon, illustration",
+    "seeds": [
+      11,
+      23,
+      37,
+      41
+    ],
+    "width": 1536,
+    "height": 512,
+    "upscale": true
+  },
+  {
+    "id": "epoxy_floor",
+    "workflow": "zimage_t2i",
+    "prompt": "top-down flat texture of a polished light grey epoxy garage floor with fine dark grey and white speckles, evenly lit, no shadows, no lines, no objects, seamless material scan, high detail",
+    "negative": "perspective, shadows, objects, lines, text, cracks, stains",
+    "seeds": [
+      5,
+      8,
+      13
+    ],
+    "width": 1024,
+    "height": 1024,
+    "tile": true
+  },
+  {
+    "id": "wall_panel",
+    "workflow": "zimage_t2i",
+    "prompt": "flat front-on texture of matte black acoustic wall panels with very fine fabric weave and thin vertical seams every quarter of the image, evenly lit, no shadows, seamless material scan",
+    "negative": "perspective, shadows, objects, text, logos, colour",
+    "seeds": [
+      3,
+      17,
+      29
+    ],
+    "width": 1024,
+    "height": 1024,
+    "tile": true
+  },
+  {
+    "id": "showroom_art",
+    "workflow": "zimage_t2i",
+    "prompt": "abstract long-exposure photograph of flowing light trails in white and warm amber across a pure black background, elegant curves suggesting speed, minimal, gallery print, no car, no text",
+    "negative": "car, vehicle, text, letters, logos, people, busy, colourful",
+    "seeds": [
+      2,
+      7,
+      19,
+      31
+    ],
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "id": "tool_wall",
+    "workflow": "zimage_t2i",
+    "prompt": "front-on photograph of a dark workshop pegboard wall with neatly hung hand tools, spanners, sockets, pliers and air hoses, matte black pegboard, warm low light from above falling off into darkness, moody, cinematic, no text, no labels, no logos, no brands, no people, photorealistic, 50mm",
+    "negative": "text, letters, labels, logos, brand names, stickers, watermark, people, hands, cartoon, illustration, bright, overexposed",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "width": 1536,
+    "height": 768
+  },
+  {
+    "id": "parts_shelf",
+    "workflow": "zimage_t2i",
+    "prompt": "front-on photograph of a dark industrial metal shelving unit in a car workshop holding stacked alloy wheels, coilover springs, exhaust parts and plain unmarked boxes, warm low light from above falling off into darkness, moody, cinematic, no text, no labels, no logos, no brands, no people, photorealistic, 50mm",
+    "negative": "text, letters, labels, logos, brand names, stickers, barcodes, watermark, people, cartoon, illustration, bright, overexposed",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "width": 1536,
+    "height": 768
+  }
+]

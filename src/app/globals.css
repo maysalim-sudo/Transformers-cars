@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* room for side panels: wide AND tall (a phone on its side is wide but only ~390 px tall) */
+@custom-variant roomy (@media (min-width: 640px) and (min-height: 560px));
+/* a phone, whichever way it is held (touch, and a short side under 768 px): the garage hero is one screen
+   there, not a scroll story. Keep in step with PHONE_QUERY in src/garage/device.ts */
+@custom-variant phone {
+  @media (pointer: coarse) and (max-width: 767px) {
+    @slot;
+  }
+  @media (pointer: coarse) and (max-height: 767px) {
+    @slot;
+  }
+}
+
 /* ---------- Tokens ---------- */
 :root {
   --ink-950: #050608;
@@ -121,13 +134,10 @@ html[lang="ar"] .font-mono {
   transform: rotateX(calc(var(--ee) * 16deg + var(--py, 0) * 3deg + var(--tilt, 0deg)))
     rotateY(calc(var(--ee) * 26deg + var(--px, 0) * 4deg + var(--orbit, 0deg))) scale(calc(1 - var(--ee) * var(--shrink, 0.14)));
 }
-/* narrow screens: shrink more while exploded so outer parts stay in frame; callouts would clutter */
+/* narrow screens: shrink more while exploded so outer parts stay in frame */
 @container (max-width: 640px) {
   .car-rig {
     --shrink: 0.32;
-  }
-  .car-callout {
-    display: none;
   }
 }
 .car-part {
@@ -146,44 +156,12 @@ html[lang="ar"] .font-mono {
   will-change: transform;
   pointer-events: none;
 }
-.car-part > svg,
-.car-shadow > svg {
+.car-part > svg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   overflow: visible;
-}
-.car-shadow {
-  position: absolute;
-  inset: 0;
-  transform: translateZ(-2cqw);
-  opacity: calc(1 - var(--e, 0) * 0.55);
-}
-.car-callout {
-  position: absolute;
-  /* lifted towards the viewer so nearer parts do not hide it */
-  transform: translate(-50%, -50%) translateZ(6cqw);
-  opacity: clamp(0, (var(--e, 0) - 0.82) * 6, 1);
-  white-space: nowrap;
-  pointer-events: none;
-}
-.car-idle {
-  animation: car-idle 9s ease-in-out infinite;
-}
-@keyframes car-idle {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-0.35cqw);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .car-idle {
-    animation: none;
-  }
 }
 
 /* ---------- Diagnosis car ---------- */
@@ -230,44 +208,8 @@ html[lang="ar"] .font-mono {
   }
 }
 
-/* ---------- Transformation (stock → tuned) ---------- */
-/* --tx 0 → 1 moves a wipe from the nose to the tail. The edges start at -20% so nothing is
-   clipped before the beam arrives (exploded parts and the dropped engine overflow the box). */
-.car-stock {
-  clip-path: inset(-50% -20% -50% calc(var(--tx, 0) * 120% - 20%));
-}
-.car-tuned {
-  /* right edge = 100% - (stock left edge), so both meet exactly at the beam */
-  clip-path: inset(-50% calc(120% - var(--tx, 0) * 120%) -50% -20%);
-}
-.car-spin {
-  transform: rotate(calc(var(--tx, 0) * 540deg));
-}
-.car-beam {
-  position: absolute;
-  top: 8%;
-  bottom: 6%;
-  left: calc(var(--tx, 0) * 120% - 20%);
-  width: 2px;
-  /* just in front of the wheels (z 4 → 0.33cqw); more depth would shift it sideways under perspective */
-  transform: translateZ(0.5cqw);
-  background: linear-gradient(to bottom, transparent, #ffd27a 18%, #fff4d6 50%, #ffd27a 82%, transparent);
-  box-shadow: 0 0 18px 6px rgba(240, 176, 78, 0.55), 0 0 60px 18px rgba(209, 138, 30, 0.25);
-  /* only visible mid-transformation */
-  opacity: clamp(0, min(var(--tx, 0), 1 - var(--tx, 0)) * 10, 1);
-  pointer-events: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .car-beam {
-    display: none;
-  }
-  .car-spin {
-    transform: none;
-  }
-}
-
-/* ---------- Headlight moments (hero only) ---------- */
-/* welcome: the LED strips draw in when the page opens */
+/* ---------- Headlights ---------- */
+/* the LED strips draw in when the car first appears */
 .car-frame .led {
   stroke-dasharray: 1;
   animation: led-draw 1.2s cubic-bezier(0.6, 0, 0.2, 1) 0.6s both;
@@ -283,37 +225,8 @@ html[lang="ar"] .font-mono {
     stroke-dashoffset: 0;
   }
 }
-/* the finished build flashes its lights */
-[data-lit="1"] .car-tuned .led {
-  animation: led-flash 0.7s ease-out both;
-}
-@keyframes led-flash {
-  0%,
-  40%,
-  100% {
-    opacity: 1;
-  }
-  20%,
-  60% {
-    opacity: 0.15;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
-  .car-frame .led,
-  [data-lit="1"] .car-tuned .led {
+  .car-frame .led {
     animation: none;
   }
-}
-
-/* ---------- Showroom floor reflection ---------- */
-/* a copy of the car flipped about its ground line (y 420 of 480 = 87.5%), fading away from the floor */
-.car-reflection {
-  position: absolute;
-  inset: 0;
-  transform: scaleY(-1);
-  transform-origin: 50% 87.5%;
-  opacity: calc(0.16 * (1 - var(--e, 0)));
-  -webkit-mask-image: linear-gradient(to bottom, transparent 45%, #000 87.5%);
-  mask-image: linear-gradient(to bottom, transparent 45%, #000 87.5%);
-  pointer-events: none;
 }
