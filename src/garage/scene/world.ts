@@ -12,6 +12,8 @@ export type World = {
   nodes: Partial<Record<MovingNode, THREE.Object3D>>;
   /** car-local gantry placement is done by the scene, which knows the car's length */
   apply(s: GarageState, opts: { carX: number; carLength: number }): void;
+  /** the beams of light under the workshop pools (a film effect: off from the medium tier down) */
+  setRays(on: boolean): void;
   dispose(): void;
 };
 
@@ -20,6 +22,8 @@ const DOOR_TRAVEL = 3.4;
 const LIFT_HEIGHT = 0.55;
 const SPOT_POWER = 95;
 const SHAFT_ALPHA = 0.045;
+/** the workshop beams are fainter than the showroom's: haze under a work light, not a stage */
+const RAY_ALPHA = 0.028;
 /** the baked light per zone: the workshop's pools are held down so the car, lit live, stays the brightest thing */
 const LIGHTMAP_INTENSITY: Record<string, number> = { workshop: 0.6, showroom: 1 };
 
@@ -177,6 +181,27 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
     owned.push(m);
     lights.push(shaft as unknown as THREE.Light);
   }
+  // a beam of hazy light under each workshop pool, brightest while its bay is active
+  const POOLS = [layout.bays.wheels, layout.bays.stance, layout.bays.kit, layout.bays.paint, layout.bays.tint];
+  const rayMats = POOLS.map((x) => {
+    // the paint pool hangs above the booth roof: its beam starts under the roof, among the booth's lights
+    const top = x === layout.bays.paint ? layout.booth.height - 0.1 : layout.hall.height - 0.4;
+    const g = new THREE.ConeGeometry(1.7, top, 32, 1, true);
+    g.translate(0, top / 2, 0); // apex up at the lamp (brightest there), open on the floor
+    const m = shaftMaterial();
+    m.uniforms.color.value.set("#fff3e2");
+    const ray = new THREE.Mesh(g, m);
+    ray.position.x = x;
+    ray.renderOrder = 2;
+    ray.layers.set(1); // never mirrored in the floor
+    scene.add(ray);
+    shaftGeos.push(g);
+    owned.push(m);
+    lights.push(ray as unknown as THREE.Light);
+    return m;
+  });
+  let rays = true;
+
   // each lens gets its own material so the lights can come on one by one
   const lenses: THREE.MeshStandardMaterial[] = [];
   for (let i = 0; i < layout.rig.count; i++) {
@@ -219,6 +244,10 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
       spots.forEach((l, i) => (l.intensity = s.showLights[i] * SPOT_POWER));
       lenses.forEach((m, i) => m && (m.emissiveIntensity = s.showLights[i] * 8));
       shaftMats.forEach((m, i) => (m.uniforms.intensity.value = s.showLights[i] * SHAFT_ALPHA));
+      rayMats.forEach((m, i) => (m.uniforms.intensity.value = rays ? s.poolLight[i] * RAY_ALPHA * (1 - s.transition) : 0));
+    },
+    setRays(on) {
+      rays = on;
     },
     dispose() {
       mixer.stopAllAction();

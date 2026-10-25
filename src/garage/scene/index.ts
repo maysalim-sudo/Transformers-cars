@@ -13,6 +13,9 @@ import { createEffects, type Effects } from "./effects";
 import { createGradePass } from "./grade";
 import { createGrounding, type Grounding } from "./grounding";
 import { createHandheld } from "./handheld";
+import { FlarePass } from "./post/flares";
+import { apertureAt, blurStrength, focusDistance, rimBlurAmount } from "./post/lens";
+import { createLens } from "./post/lensPass";
 import { createLadder, TIER_FEATURES, type Tier } from "./quality";
 import { createFloorReflections, type FloorReflections } from "./reflections";
 import { loadWorld, type World } from "./world";
@@ -63,10 +66,17 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
   const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 200);
   camera.layers.enable(1); // the light shafts (the floor-reflection camera sees layer 0 only)
 
-  const composer = new EffectComposer(renderer);
+  // the scene render keeps its depth, for the lens pass (motion blur, depth of field) to read
+  const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthTexture: new THREE.DepthTexture(1, 1) });
+  const composer = new EffectComposer(renderer, target);
+  // render → lens (motion blur, depth of field) → bloom → anamorphic flares → output → grade
   composer.addPass(new RenderPass(scene, camera));
+  const lens = createLens();
+  composer.addPass(lens.pass);
   const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.25, 0.08, 0.98);
   composer.addPass(bloom);
+  const flares = new FlarePass();
+  composer.addPass(flares);
   composer.addPass(new OutputPass());
   const grade = createGradePass(reduced);
   composer.addPass(grade.pass);
@@ -94,6 +104,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
     effects = createEffects(scene, car, reduced);
     grounding = createGrounding(scene, car, phone);
     if (!features.shadows) shadowsOff();
+    filmEffects();
     // real floor reflections cost a second scene render: desktop only
     if (!phone && features.reflections) {
       reflections = createFloorReflections(scene, w.root);
@@ -118,8 +129,17 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
     });
   }
 
+  /** the film effects this tier keeps (motion blur never under reduced motion) */
+  function filmEffects() {
+    lens.set({ dof: features.dof, motionBlur: features.motionBlur && !reduced });
+    flares.enabled = features.flares;
+    if (!features.flares) flares.release();
+    world?.setRays(features.rays);
+  }
+
   function applyTier(tier: Tier) {
     features = TIER_FEATURES[tier];
+    filmEffects();
     if (!features.reflections && reflections) {
       reflections.dispose();
       reflections = null;
@@ -143,6 +163,9 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
   const handheld = createHandheld(reduced);
   const DEG = Math.PI / 180;
   const v = new THREE.Vector3();
+  const lastCam = new THREE.Vector3();
+  let lastSpin = 0;
+  let firstFrame = true;
 
   const api: Garage = {
     ready,
@@ -171,6 +194,22 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
         else camera.clearViewOffset();
         camera.updateProjectionMatrix();
       }
+      // the lens: a jump (End key, a deep link) is a cut, never a smear
+      const moved = firstFrame ? 0 : lastCam.distanceTo(v.set(...s.camera.pos));
+      const jumped = firstFrame || moved > 1;
+      lastCam.set(...s.camera.pos);
+      firstFrame = false;
+      v.set(...s.camera.focus).project(camera);
+      const inView = v.z < 1 && Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1;
+      lens.update(camera, {
+        focus: focusDistance(s.camera.pos, s.camera.focus, [s.carX, 0.8, 0], inView),
+        aperture: apertureAt(s),
+        shutter: blurStrength(moved, jumped),
+        height: size.h * renderer.getPixelRatio(),
+      });
+      const spin = jumped || dt === 0 ? 0 : (s.wheelSpin - lastSpin) / dt;
+      lastSpin = s.wheelSpin;
+      car.blurRims(features.motionBlur && !reduced ? rimBlurAmount(spin) : 0);
     },
     render() {
       if (!car) return;
@@ -214,6 +253,8 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       world?.dispose();
       env.dispose();
       pmrem.dispose();
+      lens.dispose();
+      flares.dispose();
       composer.dispose();
       renderer.dispose();
     },

@@ -10,6 +10,8 @@ export type RiggedCar = {
   length: number;
   apply(s: GarageState): void;
   anchorWorld(id: AnchorId, out: THREE.Vector3): THREE.Vector3;
+  /** fades a motion-blurred disc over each rim (0 … 1, from rimBlurAmount) */
+  blurRims(amount: number): void;
   dispose(): void;
 };
 
@@ -107,6 +109,33 @@ export function rigCar(scene: THREE.Object3D): RiggedCar {
   const wheelBox = new THREE.Box3().setFromObject(wheels[0].pivot);
   const wheelRadius = (wheelBox.max.y - wheelBox.min.y) / 2;
 
+  // a spinning rim seen on film: the spokes smear into a disc, darker at the hub, brighter at the lip
+  const BLUR_N = 64;
+  const blurData = new Uint8Array(BLUR_N * BLUR_N * 4);
+  for (let j = 0; j < BLUR_N; j++) {
+    for (let i = 0; i < BLUR_N; i++) {
+      const r = Math.hypot((i + 0.5) / BLUR_N - 0.5, (j + 0.5) / BLUR_N - 0.5) * 2;
+      const k = (j * BLUR_N + i) * 4;
+      const shade = r < 0.22 ? 0.55 : 0.75 + 0.25 * Math.min(1, (r - 0.22) / 0.7);
+      blurData.set([255 * shade, 255 * shade, 255 * shade, r < 0.96 ? 255 * Math.min(1, (0.96 - r) / 0.04) : 0], k);
+    }
+  }
+  const blurTex = new THREE.DataTexture(blurData, BLUR_N, BLUR_N);
+  blurTex.magFilter = THREE.LinearFilter;
+  blurTex.needsUpdate = true;
+  const blurMat = new THREE.MeshStandardMaterial({ map: blurTex, transparent: true, opacity: 0, metalness: 0.6, roughness: 0.45, depthWrite: false });
+  owned.push(blurMat);
+  const wheelWidth = wheelBox.max.z - wheelBox.min.z;
+  const blurGeo = new THREE.CircleGeometry(wheelRadius * 0.78, 32);
+  const blurDiscs = wheels.map((w) => {
+    const disc = new THREE.Mesh(blurGeo, blurMat);
+    disc.position.z = w.side * (wheelWidth / 2 + 0.004);
+    if (w.side < 0) disc.rotation.y = Math.PI; // face outward on the right side too
+    disc.visible = false;
+    w.pivot.add(disc);
+    return disc;
+  });
+
   const body: { node: THREE.Object3D; rest: THREE.Vector3; out: THREE.Vector3 }[] = [];
   for (const [partId, list] of nodes) {
     if (STILL.test(partId)) continue;
@@ -141,6 +170,7 @@ export function rigCar(scene: THREE.Object3D): RiggedCar {
       if (kind === "glass") mat.opacity = heroCar.stock.glassOpacity + (heroCar.tuned.glassOpacity - heroCar.stock.glassOpacity) * k;
     }
     for (const l of leds) l.mat.emissiveIntensity = l.base * (0.6 + s.headlights * 1.2);
+    blurMat.color.lerpColors(C.rim[0], C.rim[1], s.wheelFinish);
   };
 
   apply(stateAt(0));
@@ -154,9 +184,14 @@ export function rigCar(scene: THREE.Object3D): RiggedCar {
       a.node.updateWorldMatrix(true, false);
       return a.node.localToWorld(out.copy(a.local));
     },
+    blurRims(amount) {
+      blurMat.opacity = amount * 0.9;
+      blurDiscs.forEach((d) => (d.visible = amount > 0));
+    },
     dispose() {
       group.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
       owned.forEach((m) => m.dispose());
+      blurTex.dispose();
     },
   };
 }
