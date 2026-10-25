@@ -38,8 +38,12 @@ export type GarageState = {
   /** rad */
   tableTurn: number;
   headlights: number;
-  /** `focus`: the world point depth of field focuses on (the part being worked on); fov in degrees */
-  camera: { pos: Vec3; look: Vec3; focus: Vec3; fov: number };
+  /**
+   * `focus`: the world point depth of field focuses on (the part being worked on); fov in degrees.
+   * `shift`: a lens shift, as a fraction of the frame width (positive moves the picture right), keeping the
+   * garage out of the half of the screen the headline sits on.
+   */
+  camera: { pos: Vec3; look: Vec3; focus: Vec3; fov: number; shift: number };
 };
 
 /** Start of bays 1–6 (wheels, stance, kit, paint, tint, reveal). Bay 0 is the arrival. */
@@ -133,6 +137,16 @@ const shots: Shot[] = [
 /** How high the lift raises the car (the scene's car rig uses the same value). */
 const LIFT_HEIGHT = 0.55;
 const PORTRAIT_FOV = 52;
+/**
+ * The arrival keeps the garage in the half of the screen away from the headline, and recentres as the first
+ * bay's card takes over. The opening shot sits left of centre, so right-to-left pages (headline on the
+ * right) need only a nudge at first, and more once the car drives in, centred, under the words.
+ */
+function arrivalShift(p: number, rtl: boolean): number {
+  if (p >= 0.1) return 0;
+  const shift = rtl ? lerp(-0.05, -0.27, ss(0.015, 0.04, p)) : 0.28;
+  return shift * (1 - ss(0.06, 0.1, p));
+}
 
 function shotAt(p: number): { offset: Vec3; look: Vec3; fov: number } {
   let i = 1;
@@ -205,8 +219,8 @@ const bayAt = (p: number): GarageState["bay"] => {
 /** Where each bay's work is finished (the showroom counts once the reveal has played). */
 const DONE_AT = [BAYS[1], BAYS[2], BAYS[3], BAYS[4], BAYS[5], 0.97];
 
-export function stateAt(p: number, opts: { portrait?: boolean; wheelRadius?: number } = {}): GarageState {
-  const { portrait = false, wheelRadius = 0.36 } = opts;
+export function stateAt(p: number, opts: { portrait?: boolean; rtl?: boolean; wheelRadius?: number } = {}): GarageState {
+  const { portrait = false, rtl = false, wheelRadius = 0.36 } = opts;
   const { x: carX, speed } = drive(p);
   const lift = visit(0.15, 0.18, 0.245, 0.265, p);
   const cam = portrait ? { ...cameraAt(portraitCams, p), fov: PORTRAIT_FOV } : shotAt(p);
@@ -243,6 +257,7 @@ export function stateAt(p: number, opts: { portrait?: boolean; wheelRadius?: num
       look,
       focus: look,
       fov: cam.fov,
+      shift: portrait ? 0 : arrivalShift(p, rtl),
     },
   };
 }

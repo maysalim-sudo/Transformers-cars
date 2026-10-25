@@ -128,6 +128,23 @@ describe("garage timeline", () => {
     /** where the car holds still in each bay */
     const HOLDS: [number, number][] = [[0.13, 0.26], [0.32, 0.41], [0.47, 0.56], [0.62, 0.73], [0.78, 0.84]];
 
+    it("frames the arrival off-centre, so the headline has its own half of the screen", () => {
+      // held while the headline shows (all of bay 0), so the garage never slides under the words
+      for (const p of [0, 0.03, 0.06]) {
+        expect(stateAt(p).camera.shift, `p=${p}`).toBeGreaterThanOrEqual(0.2);
+        // right-to-left pages put the headline on the right: the garage moves left instead (less far, as the
+        // shot already sits left of centre)
+        expect(stateAt(p, { rtl: true }).camera.shift, `p=${p} rtl`).toBeLessThanOrEqual(-0.05);
+      }
+      // centred again as the first bay's card takes over, and for the rest of the scroll
+      for (const p of range(0.1, 1, 0.01)) {
+        expect(stateAt(p).camera.shift, `p=${p}`).toBe(0);
+        expect(stateAt(p, { rtl: true }).camera.shift, `p=${p} rtl`).toBe(0);
+      }
+      // phones put the headline at the bottom: no shift
+      expect(stateAt(0, { portrait: true }).camera.shift).toBe(0);
+    });
+
     it("tracks alongside on the drives", () => {
       for (const p of [0.075, 0.29, 0.44, 0.59, 0.755]) {
         const s = stateAt(p);

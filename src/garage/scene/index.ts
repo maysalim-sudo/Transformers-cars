@@ -159,8 +159,12 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       camera.lookAt(look.set(...s.camera.look));
       camera.rotateY(sway.yaw * DEG);
       camera.rotateX(sway.pitch * DEG);
-      if (camera.fov !== s.camera.fov) {
+      // a lens shift: the window onto the full view slides, so the picture moves away from the text
+      const offsetX = -s.camera.shift * size.w;
+      if (camera.fov !== s.camera.fov || offsetX !== (camera.view?.enabled ? camera.view.offsetX : 0)) {
         camera.fov = s.camera.fov;
+        if (offsetX) camera.setViewOffset(size.w, size.h, offsetX, 0, size.w, size.h);
+        else camera.clearViewOffset();
         camera.updateProjectionMatrix();
       }
     },
@@ -187,6 +191,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       reflections?.resize(w, h);
       bloom.resolution.set(phone ? w / 2 : w, phone ? h / 2 : h);
       camera.aspect = w / h;
+      camera.clearViewOffset(); // set again for the new size on the next frame
       camera.updateProjectionMatrix();
     },
     onSlow: (cb) => void slow.push(cb),

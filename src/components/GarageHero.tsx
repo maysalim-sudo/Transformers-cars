@@ -87,6 +87,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
     if (!trackEl || !canvasEl) return;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const portrait = () => innerHeight > innerWidth;
+    const rtl = document.dir === "rtl";
     let scene: Garage | null = null;
     let live = false;
     let raf = 0;
@@ -161,7 +162,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
       lastTarget = target;
       p = step.p;
       if (step.jumped) soundP = null;
-      const s = stateAt(p, { portrait: portrait() });
+      const s = stateAt(p, { portrait: portrait(), rtl });
       overlays(s, p);
       if (live && scene) {
         scene.apply(s);
@@ -201,7 +202,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
     // first paint is the still; jump straight to where the visitor already is (deep link, reload)
     p = readP();
     setMode("still");
-    overlays(stateAt(p, { portrait: portrait() }), p);
+    overlays(stateAt(p, { portrait: portrait(), rtl }), p);
 
     // pick the tier this device can likely hold before downloading anything 3D (no WebGL2, a software
     // renderer or a data saver keep the stills); `?tier=` pins one for checks and leaves no memory
