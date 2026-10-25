@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { calloutPlace } from "@/garage/callout";
+import { createDebugHud } from "@/garage/debugHud";
 import { isPhoneDevice, type Level, levelFromHints, readHints, readRemembered, remember, startLevel } from "@/garage/device";
 import type { AnchorId } from "@/garage/heroCar";
 import type { Garage } from "@/garage/scene";
@@ -89,6 +90,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const portrait = () => innerHeight > innerWidth;
     const rtl = document.dir === "rtl";
+    const hud = createDebugHud(location.search);
     let scene: Garage | null = null;
     let live = false;
     let raf = 0;
@@ -174,6 +176,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
     // null after a pause: the first frame back snaps to wherever the visitor scrolled meanwhile
     let lastTarget: number | null = null;
     const tick = (now: number) => {
+      hud?.frame(now);
       const dt = Math.min((now - lastT) / 1000, 0.1);
       lastT = now;
       const target = readP();
@@ -227,7 +230,14 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
     // renderer or a data saver keep the stills); `?tier=` pins one for checks and leaves no memory
     const phone = isPhoneDevice({ coarse: matchMedia("(pointer: coarse)").matches, screen: [screen.width, screen.height] });
     const pinned = tierFromQuery(location.search);
-    const level: Level = reduced ? "stills" : (pinned ?? startLevel(levelFromHints(readHints(phone)), readRemembered(), Date.now()));
+    const hints = reduced || pinned ? null : readHints(phone);
+    const level: Level = reduced ? "stills" : (pinned ?? startLevel(levelFromHints(hints!), readRemembered(), Date.now()));
+    hud?.set("device", `${phone ? "phone" : "desktop"} ${innerWidth}x${innerHeight} dpr ${devicePixelRatio} mem ${hints?.memory ?? "?"} cores ${hints?.cores ?? "?"}`);
+    hud?.set("gpu", hints?.gpu ?? "(not read)");
+    const memory = readRemembered();
+    hud?.set("memory", memory ? `${memory.level}, ${Math.round((Date.now() - memory.at) / 60000)} min ago` : "none");
+    hud?.set("start", `${level}${pinned ? " (pinned)" : ""}${reduced ? " (reduced motion)" : ""}`);
+    hud?.set("mode", "still (loading 3D)");
     if (level !== "stills") {
       import("@/garage/scene")
         .then(({ createGarage }) => {
@@ -235,10 +245,17 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
           scene = createGarage(canvasEl, { phone, reduced, tier: level, pinned: pinned !== null });
           scene.onSlow(() => {
             remember("stills");
+            hud?.set("mode", "still: too slow even at low");
             toStill();
           });
-          scene.onTier(remember);
-          scene.onLost(toStill);
+          scene.onTier((tier) => {
+            remember(tier);
+            hud?.set("tier", `dropped to ${tier}`);
+          });
+          scene.onLost(() => {
+            hud?.set("mode", "still: WebGL context lost");
+            toStill();
+          });
           // the `?tier=` check URL hands the scene to measuring scripts (scripts/car-brightness.mjs)
           if (pinned) (window as Window & { __garage?: Garage }).__garage = scene;
           onResize();
@@ -247,13 +264,18 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
             if (!pinned) remember(level);
             live = true;
             setMode("live");
+            hud?.set("mode", "live");
             start();
           });
         })
-        .catch(toStill);
+        .catch((e: unknown) => {
+          hud?.set("mode", `still: ${e instanceof Error ? e.message : "load failed"}`);
+          toStill();
+        });
     }
 
     return () => {
+      hud?.remove();
       cancelled = true;
       cancelAnimationFrame(raf);
       io.disconnect();

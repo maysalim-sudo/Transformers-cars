@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { describe, expect, it } from "vitest";
 import { heroCar } from "../heroCar";
 import { stateAt } from "../timeline";
@@ -10,7 +11,7 @@ import { rigCar, sweepAmount } from "./car";
 async function rig() {
   const buf = readFileSync(path.resolve(__dirname, "../../../public", heroCar.url.slice(1)));
   const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-  const scene = (await new GLTFLoader().parseAsync(ab, "")).scene;
+  const scene = (await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(ab, "")).scene;
   const car = rigCar(scene);
   const node = (id: string) => {
     let found: THREE.Object3D | undefined;

@@ -108,7 +108,8 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
     }
     mesh.material = clones.get(key)!;
   });
-  const surfaces = await applySurfaces(root);
+  // the floor and wall detail maps (about 420 KB) barely show on a phone's screen: phones skip them
+  const surfaces = phone ? null : await applySurfaces(root);
 
   const nodes: World["nodes"] = {};
   for (const name of ["door", "lift_arms", "gantry", "turntable", "cover"] as const) {
@@ -263,7 +264,7 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
       root.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
       owned.forEach((m) => m.dispose());
       shaftGeos.forEach((g) => g.dispose());
-      surfaces.dispose();
+      surfaces?.dispose();
       lights.forEach((l) => l.removeFromParent());
       Object.values(maps).forEach((t) => t?.dispose());
     },

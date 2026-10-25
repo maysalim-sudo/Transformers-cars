@@ -21,7 +21,8 @@ export const heroCar: {
   anchors: Record<AnchorId, Anchor>;
 } = {
   model: "suv",
-  url: "/models/hd/suv.glb",
+  // the garage's meshopt copy of /models/hd/suv.glb (scripts/compress-glb.sh); the diagnose page keeps the original
+  url: "/garage/hero-suv.glb",
   stock: { paint: "#8d939c", rim: "#c4c9cf", caliper: "#4b5058", glass: "#6e7d8c", glassOpacity: 0.45 },
   tuned: { paint: "#c27a12", rim: "#0c0d10", caliper: "#ffad3a", glass: "#040506", glassOpacity: 0.9 },
   kitParts: [

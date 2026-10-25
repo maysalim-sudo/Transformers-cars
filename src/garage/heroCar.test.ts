@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { describe, expect, it } from "vitest";
 import { getPart } from "../car/registry";
 import { heroCar } from "./heroCar";
@@ -9,7 +10,7 @@ import { heroCar } from "./heroCar";
 async function loadHero() {
   const buf = readFileSync(path.resolve(__dirname, "../../public", heroCar.url.slice(1)));
   const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-  return (await new GLTFLoader().parseAsync(ab, "")).scene;
+  return (await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(ab, "")).scene;
 }
 
 describe("hero car config", () => {
