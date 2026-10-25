@@ -12,7 +12,7 @@ export type World = {
   nodes: Partial<Record<MovingNode, THREE.Object3D>>;
   /** car-local gantry placement is done by the scene, which knows the car's length */
   apply(s: GarageState, opts: { carX: number; carLength: number }): void;
-  /** the beams of light under the workshop pools (a film effect: off from the medium tier down) */
+  /** the beams of light under the workshop pools (a film effect: off at the low tier and on phones) */
   setRays(on: boolean): void;
   dispose(): void;
 };
@@ -187,7 +187,7 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
   }
   // a beam of hazy light under each workshop pool, brightest while its bay is active
   const POOLS = [layout.bays.wheels, layout.bays.stance, layout.bays.kit, layout.bays.paint, layout.bays.tint];
-  const rayMats = POOLS.map((x) => {
+  const rayMeshes = POOLS.map((x) => {
     // the paint pool hangs above the booth roof: its beam starts under the roof, among the booth's lights
     const top = x === layout.bays.paint ? layout.booth.height - 0.1 : layout.hall.height - 0.4;
     const g = new THREE.ConeGeometry(1.7, top, 32, 1, true);
@@ -202,7 +202,7 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
     shaftGeos.push(g);
     owned.push(m);
     lights.push(ray as unknown as THREE.Light);
-    return m;
+    return ray;
   });
   let rays = true;
 
@@ -249,7 +249,11 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
       spots.forEach((l, i) => (l.intensity = s.showLights[i] * SPOT_POWER));
       lenses.forEach((m, i) => m && (m.emissiveIntensity = s.showLights[i] * 8));
       shaftMats.forEach((m, i) => (m.uniforms.intensity.value = s.showLights[i] * SHAFT_ALPHA));
-      rayMats.forEach((m, i) => (m.uniforms.intensity.value = rays ? s.poolLight[i] * RAY_ALPHA * (1 - s.transition) : 0));
+      rayMeshes.forEach((ray, i) => {
+        const intensity = rays ? s.poolLight[i] * RAY_ALPHA * (1 - s.transition) : 0;
+        (ray.material as THREE.ShaderMaterial).uniforms.intensity.value = intensity;
+        ray.visible = intensity > 0; // a dark beam still costs its fill rate: skip it
+      });
     },
     setRays(on) {
       rays = on;

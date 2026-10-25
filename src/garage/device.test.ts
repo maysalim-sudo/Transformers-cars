@@ -44,9 +44,9 @@ describe("device pre-check", () => {
     expect(startLevel("ultra", null, DAY)).toBe("ultra");
   });
 
-  it("keeps stills for a week, then tries again", () => {
-    expect(startLevel("ultra", { level: "stills", at: 0 }, 6 * DAY)).toBe("stills");
-    expect(startLevel("ultra", { level: "stills", at: 0 }, 8 * DAY)).toBe("ultra");
+  it("keeps stills for a day only (one bad visit must not cost a week), then tries again", () => {
+    expect(startLevel("ultra", { level: "stills", at: 0 }, 0.5 * DAY)).toBe("stills");
+    expect(startLevel("ultra", { level: "stills", at: 0 }, 1.5 * DAY)).toBe("ultra");
     expect(startLevel("ultra", { level: "low", at: 0 }, 8 * DAY)).toBe("ultra");
   });
 

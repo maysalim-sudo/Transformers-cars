@@ -108,11 +108,22 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
       canvasEl.style.opacity = mode === "live" ? "1" : "0";
     };
 
+    // the later stills download only when still mode shows them (the live scene covers them otherwise)
+    const loadStill = (i: number) => {
+      stills.current[i]?.querySelectorAll<HTMLElement>("[data-src], [data-srcset]").forEach((el) => {
+        if (el.dataset.srcset) el.setAttribute("srcset", el.dataset.srcset);
+        if (el.dataset.src) el.setAttribute("src", el.dataset.src);
+        delete el.dataset.srcset;
+        delete el.dataset.src;
+      });
+    };
+
     const toStill = () => {
       live = false;
       scene?.dispose();
       scene = null;
       setMode("still");
+      if (lastStill >= 0) loadStill(lastStill);
     };
 
     const overlays = (s: GarageState, pNow: number) => {
@@ -137,6 +148,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
       if (still !== lastStill) {
         stills.current.forEach((el, i) => el && (el.style.opacity = i === still ? "1" : "0"));
         lastStill = still;
+        if (!live) loadStill(still);
       }
       callouts.current.forEach((el, i) => {
         if (!el) return;
@@ -172,7 +184,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
       const s = stateAt(p, { portrait: portrait(), rtl });
       overlays(s, p);
       if (live && scene) {
-        scene.apply(s);
+        scene.apply(s, { jumped: step.jumped });
         scene.render();
       }
       // the stills show a parked car: no engine note in still mode
@@ -251,6 +263,10 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
     };
   }, []);
 
+  const tall = (name: string) => `/garage/still_${name}_9x16.webp`;
+  // the wide arrival keeps the garage out of the headline's half: mirrored for right-to-left pages
+  const wide = (name: string) => `/garage/still_${name === "arrival" && localeDir[locale] === "rtl" ? "arrival_rtl" : name}_16x9.webp`;
+
   const cta = (
     <div className="mt-6 flex flex-wrap gap-3">
       <Link
@@ -283,9 +299,15 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
             className="absolute inset-0 transition-opacity duration-700 motion-reduce:transition-none"
             style={{ opacity: i === 0 ? 1 : 0 }}
           >
-            <source media="(orientation: portrait)" srcSet={`/garage/still_${name}_9x16.webp`} />
-            {/* the wide arrival keeps the garage out of the headline's half: mirrored for right-to-left pages */}
-            <img src={`/garage/still_${name === "arrival" && localeDir[locale] === "rtl" ? "arrival_rtl" : name}_16x9.webp`} alt="" className="h-full w-full object-cover" fetchPriority={i === 0 ? "high" : "low"} />
+            {/* only the arrival loads up front (the first paint); the others when still mode needs them (loadStill) */}
+            <source media="(orientation: portrait)" srcSet={i === 0 ? tall(name) : undefined} data-srcset={i === 0 ? undefined : tall(name)} />
+            <img
+              src={i === 0 ? wide(name) : undefined}
+              data-src={i === 0 ? undefined : wide(name)}
+              alt=""
+              className="h-full w-full object-cover"
+              fetchPriority={i === 0 ? "high" : "low"}
+            />
           </picture>
         ))}
         <canvas ref={canvas} className="absolute inset-0 h-full w-full opacity-0 transition-opacity duration-700" aria-hidden />

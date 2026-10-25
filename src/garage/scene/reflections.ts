@@ -92,6 +92,8 @@ export function createFloorReflections(scene: THREE.Scene, root: THREE.Object3D,
       geometry.dispose();
       for (const m of patched) {
         m.onBeforeCompile = () => {};
+        // a new cache key too, or three reuses the compiled reflecting program (and its taps) for the floor
+        m.customProgramCacheKey = () => `floor-plain-${m.name}`;
         m.needsUpdate = true;
       }
     },

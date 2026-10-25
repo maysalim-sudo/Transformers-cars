@@ -22,7 +22,8 @@ import { loadWorld, type World } from "./world";
 
 export type Garage = {
   ready: Promise<void>;
-  apply(s: GarageState): void;
+  /** `jumped`: the scroll snapped this frame (follow()), a cut that must not smear */
+  apply(s: GarageState, opts?: { jumped?: boolean }): void;
   render(): void;
   project(id: AnchorId): { x: number; y: number; visible: boolean };
   resize(w: number, h: number, portrait: boolean): void;
@@ -42,6 +43,8 @@ const NIGHT = new THREE.Color().setRGB(0.006, 0.009, 0.02);
 /**
  * `tier` is where the quality ladder starts (from the device pre-check); `pinned` holds it there
  * (the `?tier=` check), so it never drops and never falls back to the stills.
+ * `reduced` (no handheld drift, motion blur or grain animation) is a safeguard only: GarageHero sends
+ * reduced-motion visitors to the stills and never builds the scene for them, so it is not exercised live.
  */
 export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; reduced?: boolean; tier: Tier; pinned?: boolean }): Garage {
   const { phone, reduced = false, pinned = false } = opts;
@@ -115,7 +118,10 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       reflections = createFloorReflections(scene, w.root);
       reflections.resize(size.w, size.h);
     }
+    // the rim-blur discs are hidden until a fast drive: compile them now, or the first drive stutters
+    car.blurRims(1);
     renderer.compile(scene, camera);
+    car.blurRims(0);
   })();
 
   // the heaviest effects go first, one tier per slow second; only on the last tier does the main
@@ -174,7 +180,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
 
   const api: Garage = {
     ready,
-    apply(s) {
+    apply(s, { jumped: snapped = false } = {}) {
       if (!world || !car || !effects || !grounding) return;
       const now = performance.now();
       const dt = lastFrame ? Math.min((now - lastFrame) / 1000, 0.05) : 0;
@@ -199,9 +205,10 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
         else camera.clearViewOffset();
         camera.updateProjectionMatrix();
       }
+      camera.updateMatrixWorld(); // this frame's view, for the focus check and the lens
       // the lens: a jump (End key, a deep link) is a cut, never a smear
       const moved = firstFrame ? 0 : lastCam.distanceTo(v.set(...s.camera.pos));
-      const jumped = firstFrame || moved > 1;
+      const jumped = firstFrame || snapped || moved > 1;
       lastCam.set(...s.camera.pos);
       firstFrame = false;
       v.set(...s.camera.focus).project(camera);
@@ -245,6 +252,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       camera.aspect = w / h;
       camera.clearViewOffset(); // set again for the new size on the next frame
       camera.updateProjectionMatrix();
+      lens.reset(); // last frame's view was for the old shape: no blur across a resize
     },
     onSlow: (cb) => void slow.push(cb),
     onTier: (cb) => void tierCbs.push(cb),

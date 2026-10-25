@@ -11,7 +11,8 @@ export type Remembered = { level: Level; at: number };
 
 const SOFTWARE = /swiftshader|llvmpipe|softpipe|software|basic render/i;
 const INTEGRATED = /intel|mali|adreno|powervr|vivante|videocore/i;
-const WEEK = 7 * 24 * 3600 * 1000;
+const DAY = 24 * 3600 * 1000;
+const WEEK = 7 * DAY;
 const KEY = "tt-tier";
 
 export function levelFromHints(h: Hints): Level {
@@ -24,9 +25,12 @@ export function levelFromHints(h: Hints): Level {
 
 const rank = (l: Level) => (l === "stills" ? TIERS.length : TIERS.indexOf(l));
 
-/** The checked level, capped by what this device settled on last time (if that was under a week ago). */
+/**
+ * The checked level, capped by what this device settled on last time: a tier for a week, the stills for a day
+ * only (one visit on a busy or battery-saving machine must not keep the 3D away for long).
+ */
 export function startLevel(checked: Level, remembered: Remembered | null, now: number): Level {
-  if (!remembered || now - remembered.at > WEEK) return checked;
+  if (!remembered || now - remembered.at > (remembered.level === "stills" ? DAY : WEEK)) return checked;
   // one tier above last time, so a single bad visit (a busy machine) heals on the next
   const cap = remembered.level === "stills" ? "stills" : TIERS[Math.max(0, rank(remembered.level) - 1)];
   return rank(cap) > rank(checked) ? cap : checked;

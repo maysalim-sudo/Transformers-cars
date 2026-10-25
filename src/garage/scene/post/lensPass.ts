@@ -152,6 +152,10 @@ export function createLens() {
       prevCar.copy(opts.car);
       first = false;
     },
+    /** forget last frame (a resize): the next frame is drawn without motion blur */
+    reset() {
+      first = true;
+    },
     /** the car's box in its own space (centre, half-extents), with room for the lift and a margin */
     setCarBox(center: THREE.Vector3, half: THREE.Vector3) {
       pass.uniforms.carCenter.value.copy(center);
