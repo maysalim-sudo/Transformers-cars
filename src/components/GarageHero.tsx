@@ -11,7 +11,7 @@ import { createSoundEngine, type SoundEngine } from "@/garage/sound/engine";
 import { follow } from "@/garage/scroll";
 import { type GarageState, stateAt } from "@/garage/timeline";
 import { garage as shop } from "@/config/garage";
-import type { Locale } from "@/i18n/config";
+import { type Locale, localeDir } from "@/i18n/config";
 import { getStrings, type Strings } from "@/i18n/strings";
 import { whatsappUrl } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "./WhatsAppFloat";
@@ -284,7 +284,8 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
             style={{ opacity: i === 0 ? 1 : 0 }}
           >
             <source media="(orientation: portrait)" srcSet={`/garage/still_${name}_9x16.webp`} />
-            <img src={`/garage/still_${name}_16x9.webp`} alt="" className="h-full w-full object-cover" fetchPriority={i === 0 ? "high" : "low"} />
+            {/* the wide arrival keeps the garage out of the headline's half: mirrored for right-to-left pages */}
+            <img src={`/garage/still_${name === "arrival" && localeDir[locale] === "rtl" ? "arrival_rtl" : name}_16x9.webp`} alt="" className="h-full w-full object-cover" fetchPriority={i === 0 ? "high" : "low"} />
           </picture>
         ))}
         <canvas ref={canvas} className="absolute inset-0 h-full w-full opacity-0 transition-opacity duration-700" aria-hidden />

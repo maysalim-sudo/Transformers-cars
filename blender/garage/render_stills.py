@@ -1,9 +1,11 @@
 """Render the fallback stills of the garage hero with Cycles (sent by run.py, headless, after the bake).
-Arrival (stock car at the door), Paint (mid-sweep: the front half amber) and Reveal (tuned car on the
-turntable, rig lights on, cover gone), each 16:9 (1920x1080) and 9:16 (1080x1920), from the same camera keys
-as src/garage/timeline.ts. Writes art/garage-stills/still_<name>_<aspect>.png; pack-assets.py makes the WebPs.
-ARGS: samples=<n> (default 160), shots=arrival,paint,reveal, aspects=16x9,9x16"""
-import math, os
+Arrival (stock car at the door), Paint (mid-sweep: the front of the car amber) and Reveal (tuned car on the
+turntable, rig lights on, cover gone), 16:9 (1920x1080) and 9:16 (1080x1920), plus a right-to-left arrival.
+Camera poses (position, look, fov, lens shift, focus) come from the live timeline: run
+`npx vite-node scripts/still-poses.ts` first, which writes art/garage-stills/poses.json.
+Writes art/garage-stills/still_<name>_<aspect>.png; pack-assets.py makes the WebPs.
+ARGS: samples=<n> (default 160), shots=arrival,arrival_rtl,paint,reveal, aspects=16x9,9x16"""
+import json, math, os, subprocess
 import bpy
 from mathutils import Vector
 
@@ -124,12 +126,8 @@ cover = bpy.data.objects.get("cover")
 if cover:
     cover.hide_render = True
 
-# [car x, camera offset, look offset, car turned 180°, rig on, finish]
-SHOTS = {
-    "arrival": (L["start"], (10.5, 1.8, 3.5), (-6, 2.2, -3.2), False, False, ("stock", "stock", 0)),
-    "paint": (L["bays"]["paint"], (-4.2, 2.7, 5.2), (0, 0.8, 0), False, False, ("tuned", "stock", 0.0)),
-    "reveal": (L["show"], (6.2, 1.5, 4.6), (-1.2, 1.2, -0.6), True, True, ("tuned", "tuned", 0)),
-}
+POSES = json.load(open(os.path.join(out, "poses.json"), encoding="utf8"))
+FINISH = {"arrival": ("stock", "stock"), "arrival_rtl": ("stock", "stock"), "paint": ("tuned", "stock"), "reveal": ("tuned", "tuned")}
 cam_data = bpy.data.cameras.new("still_cam")
 cam_data.lens_unit = "FOV"
 cam_data.sensor_fit = "VERTICAL"
@@ -142,27 +140,65 @@ scene.cycles.samples = samples
 scene.view_settings.view_transform = "AgX"
 scene.render.image_settings.file_format = "PNG"
 
-for name in ARGS.get("shots", "arrival,paint,reveal").split(","):
-    x, off, look, turned, rig_on, (front, back, split) = SHOTS[name]
+# the live floor is a darker epoxy than the bake's base (surfaces.ts: colour x0.2): match it
+floor = bpy.data.materials.get("floor_epoxy")
+if floor:
+    nt = floor.node_tree
+    bsdf = nt.nodes.get("Principled BSDF")
+    src = bsdf.inputs["Base Color"].links[0].from_socket if bsdf.inputs["Base Color"].links else None
+    mul = nt.nodes.new("ShaderNodeMix")
+    mul.data_type = "RGBA"
+    mul.blend_type = "MULTIPLY"
+    mul.inputs["Factor"].default_value = 1.0
+    mul.inputs[7].default_value = (0.2, 0.2, 0.2, 1)
+    if src:
+        nt.links.new(src, mul.inputs[6])
+    else:
+        mul.inputs[6].default_value = bsdf.inputs["Base Color"].default_value
+    nt.links.new(mul.outputs[2], bsdf.inputs["Base Color"])
+
+gantry = bpy.data.objects.get("gantry")
+gantry_rest = gantry.location.x if gantry else 0
+names = ARGS.get("shots", "arrival,arrival_rtl,paint,reveal").split(",")
+aspects = ARGS.get("aspects", "16x9,9x16").split(",")
+for pose in POSES:
+    name, aspect = pose["name"], pose["aspect"]
+    if name not in names or aspect not in aspects:
+        continue
+    front, back = FINISH[name]
     F = {"stock": STOCK, "tuned": TUNED}
-    finish(F[front]["paint"], F[back]["paint"], split, F["tuned" if name != "arrival" else "stock"])
+    # the paint beam's edge, nose (-1) to tail (1), as car.ts sweeps it
+    split = -1.1 + 2.2 * pose["paintSweep"] if name == "paint" else 0
+    finish(F[front]["paint"], F[back]["paint"], split, F["stock" if name.startswith("arrival") else "tuned"])
+    x = pose["carX"]
     pivot.location = W(x, 0, 0)
-    pivot.rotation_euler = (0, 0, math.pi if turned else 0)
-    for s in rig:
-        s.hide_render = not rig_on
-    for aspect in ARGS.get("aspects", "16x9,9x16").split(","):
-        portrait = aspect == "9x16"
-        o = (off[0] * 1.45, off[1] * 1.15 + 0.3, off[2] * 1.45) if portrait else off
-        scene.render.resolution_x, scene.render.resolution_y = (1080, 1920) if portrait else (1920, 1080)
-        cam_data.angle_y = math.radians(52 if portrait else 36)
-        # past the door, half a metre inside the side walls, as in timeline.ts
-        wall = L["hall"]["halfWidth"] - 0.5
-        cz = max(-wall, min(wall, o[2])) if x + o[0] < L["door"] else o[2]
-        cam.location = W(x + o[0], o[1], cz)
-        cam.rotation_euler = (W(x + look[0], look[1], look[2]) - cam.location).to_track_quat("-Z", "Y").to_euler()
-        scene.render.filepath = os.path.join(out, f"still_{name}_{aspect}.png")
-        bpy.ops.render.render(write_still=True, scene=scene.name)
-        print("wrote", scene.render.filepath)
+    pivot.rotation_euler = (0, 0, pose["tableTurn"])
+    if gantry:
+        # world.ts: the gantry rides over the car with the paint beam, in the paint bay only
+        gantry.location.x = x + (-1.1 + 2.2 * pose["paintSweep"]) * (length / 2) if name == "paint" else gantry_rest
+    for sp in rig:
+        sp.hide_render = name != "reveal"
+    portrait = aspect == "9x16"
+    width, height = (1080, 1920) if portrait else (1920, 1080)
+    # the timeline's lens shift slides the picture right by a fraction of the width (three's view offset):
+    # render wider at the same vertical field of view, then crop the window where the site would look
+    extra = round(abs(pose["shift"]) * width)
+    scene.render.resolution_x, scene.render.resolution_y = width + 2 * extra, height
+    cam_data.angle_y = math.radians(pose["fov"])
+    cam_data.shift_x = 0
+    cam.location = W(*pose["pos"])
+    cam.rotation_euler = (W(*pose["look"]) - cam.location).to_track_quat("-Z", "Y").to_euler()
+    cam_data.dof.use_dof = True
+    cam_data.dof.focus_distance = (W(*pose["focus"]) - cam.location).length
+    cam_data.dof.aperture_fstop = 4.0
+    scene.render.filepath = os.path.join(out, f"still_{name}_{aspect}.png")
+    bpy.ops.render.render(write_still=True, scene=scene.name)
+    if extra:
+        path = scene.render.filepath
+        x0 = extra - round(pose["shift"] * width)
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", path, "-vf", f"crop={width}:{height}:{x0}:0", path + ".crop.png"], check=True)
+        os.replace(path + ".crop.png", path)
+    print("wrote", scene.render.filepath)
 
 # leave garage.blend as it was
 bpy.data.objects.remove(cam, do_unlink=True)
@@ -171,3 +207,5 @@ for o in list(col.all_objects):
 bpy.data.collections.remove(col)
 if cover:
     cover.hide_render = False
+if gantry:
+    gantry.location.x = gantry_rest
