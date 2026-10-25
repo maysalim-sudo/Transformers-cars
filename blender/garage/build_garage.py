@@ -3,7 +3,7 @@
 Positions come from LAYOUT (src/garage/layout.json, web coordinates: metres, y up, the car's left side +z).
 Blender is z up and glTF export maps Blender -Y to +z, so a web point (x, y, z) is Blender (x, -z, y).
 Moving parts are their own objects, named exactly: door, lift_arms, gantry, turntable (+ cover, added by
-cloth_cover.py) and empties spot_0..7. Static meshes carry a custom property lightmap = workshop | showroom,
+cloth_cover.py), empties spot_0..7, and the tools tool_<name> with their tool_<name>_work poses (tools.py). Static meshes carry a custom property lightmap = workshop | showroom,
 which the glTF export writes into extras for the site to pick the baked lightmap.
 Never touches the scenes "Scene" or "Commercial". ARGS: dry=1 prints the plan and builds nothing."""
 import math, os
@@ -394,6 +394,10 @@ for i in range(rig["count"]):
     GARAGE.objects.link(e)
 area_light("show_key", (SHOW, SHOW_H - 0.3, 0), (8, 8), 1600)
 area_light("show_fill", (SPLIT - 2, SHOW_H - 0.3, 0), (3, 12), 500)
+
+# props (baked) and the working tools (moving), in their own files, sharing these helpers
+for part in ("props.py", "tools.py"):
+    exec(open(os.path.join(ROOT, "blender", "garage", part), encoding="utf8").read(), globals())
 
 # world: deep night blue (the site sets the same colour as the three.js background)
 w = bpy.data.worlds.get("garage_night") or bpy.data.worlds.new("garage_night")

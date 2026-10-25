@@ -37,6 +37,8 @@ export type GarageState = {
   showLights: number[];
   /** rad */
   tableTurn: number;
+  /** each bay's tool, 0 resting on its cart … 1 at work on the part (the spray gun rides the gantry: paintSweep) */
+  tools: { wrench: number; spring: number; rivet: number; squeegee: number };
   /** each bay's overhead pool of light (wheels … tint), 0…1: full where the car is, handed over on the drives */
   poolLight: number[];
   headlights: number;
@@ -264,6 +266,14 @@ export function stateAt(p: number, opts: { portrait?: boolean; rtl?: boolean; wh
     // the turntable holds still: the camera's orbit is the motion
     tableTurn: 0,
     poolLight: poolLight(carX),
+    tools: {
+      // the wrench takes the nuts off, backs away while the wheel slides off and the new one on, then torques them
+      wrench: Math.max(visit(0.16, 0.172, 0.178, 0.19, p), visit(0.235, 0.244, 0.247, 0.255, p)),
+      spring: visit(0.325, 0.34, 0.385, 0.4, p),
+      // riveting the kit back on, once the parts have returned
+      rivet: visit(0.5, 0.512, 0.53, 0.545, p),
+      squeegee: visit(0.785, 0.795, 0.825, 0.833, p),
+    },
     headlights: flashing ? (Math.sin((p - 0.93) * 260) > 0 ? 1 : 0) : p >= 0.955 ? 1 : 0,
     camera: {
       pos: [carX + cam.offset[0], cam.offset[1] + lift * (portrait ? 0.3 : LIFT_HEIGHT), insideWalls(carX + cam.offset[0], cam.offset[2])],

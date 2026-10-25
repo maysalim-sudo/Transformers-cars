@@ -3,6 +3,7 @@ import type { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import layout from "../layout.json";
 import type { GarageState } from "../timeline";
 import { applySurfaces } from "./surfaces";
+import { toolAt, toolSpin } from "./tools";
 
 export type MovingNode = "door" | "lift_arms" | "gantry" | "turntable" | "cover";
 
@@ -110,6 +111,13 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
     const n = root.getObjectByName(name);
     if (n) nodes[name] = n;
   }
+  // each tool rests on its cart (its own node) and works at its tool_<name>_work pose
+  const tools = (["wrench", "spring", "rivet", "squeegee"] as const).flatMap((name) => {
+    const node = root.getObjectByName(`tool_${name}`);
+    const work = root.getObjectByName(`tool_${name}_work`);
+    if (!node || !work) return [];
+    return [{ name, node, rest: node.position.toArray() as [number, number, number], work: work.position.toArray() as [number, number, number] }];
+  });
   const rest = Object.fromEntries(Object.entries(nodes).map(([k, n]) => [k, n.position.clone()])) as Record<MovingNode, THREE.Vector3>;
   // the cover rides on the turntable; its pull-off is a baked morph clip that the scroll scrubs
   if (nodes.cover && nodes.turntable) nodes.turntable.attach(nodes.cover);
@@ -193,6 +201,14 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
       // (only in the paint bay; elsewhere it waits at its end of the booth)
       if (nodes.gantry) nodes.gantry.position.x = s.bay === 4 ? carX + (-1.1 + 2.2 * s.paintSweep) * (carLength / 2) : rest.gantry.x;
       if (nodes.turntable) nodes.turntable.rotation.y = s.tableTurn;
+      for (const t of tools) {
+        const v = s.tools[t.name];
+        const work: [number, number, number] = [...t.work];
+        if (t.name === "wrench") work[1] += s.lift * LIFT_HEIGHT; // the wheel is up on the lift
+        if (t.name === "squeegee") work[0] += (s.tintSweep - 0.5) * 1.2; // drawn along the glass with the film
+        t.node.position.set(...toolAt(t.rest, work, v));
+        if (t.name === "wrench" || t.name === "rivet") t.node.rotation.z = toolSpin(v);
+      }
       if (nodes.cover) nodes.cover.visible = s.coverVisible;
       if (pull && clip && s.coverVisible) {
         pull.time = s.coverPull * clip.duration;

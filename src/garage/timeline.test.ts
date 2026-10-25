@@ -249,6 +249,35 @@ describe("garage timeline", () => {
     expect(Math.max(...stateAt(0.95).poolLight)).toBe(0);
   });
 
+  describe("working tools", () => {
+    /** where the car holds still in each tool's bay */
+    const TOOL_HOLDS = { wrench: [0.13, 0.26], spring: [0.32, 0.41], rivet: [0.47, 0.56], squeegee: [0.78, 0.84] } as const;
+
+    it("each tool works only in its bay", () => {
+      for (const [tool, [a, b]] of Object.entries(TOOL_HOLDS) as [keyof typeof TOOL_HOLDS, readonly [number, number]][]) {
+        let peak = 0;
+        for (const p of range(0, 1, 0.001)) {
+          const v = stateAt(p).tools[tool];
+          if (p < a || p > b) expect(v, `${tool} at ${p}`).toBe(0);
+          else peak = Math.max(peak, v);
+        }
+        expect(peak, `${tool} reaches its part`).toBeCloseTo(1, 6);
+      }
+    });
+
+    it("tools go back to the cart before the car leaves", () => {
+      for (const [tool, [, b]] of Object.entries(TOOL_HOLDS) as [keyof typeof TOOL_HOLDS, readonly [number, number]][]) {
+        expect(stateAt(b - 0.005).tools[tool], tool).toBe(0);
+      }
+    });
+
+    it("the wrench backs off while the wheel is off the hub", () => {
+      for (const p of range(0.205, 0.215)) {
+        if (stateAt(p).wheelsOff > 0.5) expect(stateAt(p).tools.wrench, `p=${p}`).toBe(0);
+      }
+    });
+  });
+
   it("spins the wheels by the distance driven", () => {
     for (const p of [0, 0.1, 0.3, 0.95]) {
       const s = stateAt(p, { wheelRadius: 0.4 });
