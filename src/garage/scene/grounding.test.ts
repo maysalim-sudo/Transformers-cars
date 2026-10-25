@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { shadowAt, shadowAlpha } from "./grounding";
+import layout from "../layout.json";
+import { poolKey, shadowAt, shadowAlpha } from "./grounding";
 
 describe("contact shadow", () => {
   it("is darkest and tightest with the car on the floor", () => {
@@ -31,5 +32,27 @@ describe("contact shadow", () => {
       expect(a).toBeLessThanOrEqual(prev + 1e-9);
       prev = a;
     }
+  });
+});
+
+describe("workshop key light: the pool over the active bay", () => {
+  const X = [layout.bays.wheels, layout.bays.stance, layout.bays.kit, layout.bays.paint, layout.bays.tint];
+
+  it("sits over the bay at full power while the car is in it", () => {
+    for (let i = 0; i < 5; i++) {
+      const pools = X.map((_, j) => (j === i ? 1 : 0));
+      expect(poolKey(pools)).toEqual({ x: X[i], power: 1 });
+    }
+  });
+
+  it("glides between two bays and dims mid-drive, so the car drives through the dark", () => {
+    const mid = poolKey([0.5, 0.5, 0, 0, 0]);
+    expect(mid.x).toBeCloseTo((X[0] + X[1]) / 2, 6);
+    expect(mid.power).toBe(0.5);
+    expect(poolKey([0.8, 0.2, 0, 0, 0]).x).toBeCloseTo(0.8 * X[0] + 0.2 * X[1], 6);
+  });
+
+  it("is off with every pool off", () => {
+    expect(poolKey([0, 0, 0, 0, 0]).power).toBe(0);
   });
 });

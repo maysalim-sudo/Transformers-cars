@@ -1,7 +1,8 @@
 /**
  * What sits the car on the floor. The car moves, so it is in no bake: without this it floats.
  * - a soft contact shadow under it (every device): fades and spreads as the lift raises the car
- * - a workshop key light that follows it and casts real shadows (desktop; the showroom has its own rig)
+ * - a workshop key light that casts real shadows (desktop; the showroom has its own rig): the overhead pool of
+ *   the bay the car is in, gliding to the next bay and dimming as the car drives between them
  */
 import * as THREE from "three";
 import layout from "../layout.json";
@@ -32,9 +33,18 @@ export function shadowAt(lift: number): { opacity: number; spread: number } {
   return { opacity: 0.85 * (1 - 0.65 * lift), spread: 1 + 0.35 * lift };
 }
 
+const POOL_X = [layout.bays.wheels, layout.bays.stance, layout.bays.kit, layout.bays.paint, layout.bays.tint];
+
+/** Where the key light hangs and how strong it is, from the bays' pool levels (GarageState.poolLight). */
+export function poolKey(pools: number[]): { x: number; power: number } {
+  const sum = pools.reduce((a, b) => a + b, 0);
+  const x = sum > 0 ? pools.reduce((a, v, i) => a + v * POOL_X[i], 0) / sum : POOL_X[0];
+  return { x, power: Math.max(...pools) };
+}
+
 export type Grounding = { apply(s: GarageState): void; dispose(): void };
 
-const KEY_POWER = 34;
+const KEY_POWER = 80;
 
 export function createGrounding(scene: THREE.Scene, car: RiggedCar, phone: boolean): Grounding {
   const W = 128;
@@ -56,7 +66,8 @@ export function createGrounding(scene: THREE.Scene, car: RiggedCar, phone: boole
   scene.add(shadow);
 
   // key light over the car while it is in the workshop (indoors, before the showroom's own rig)
-  const key = phone ? null : new THREE.SpotLight("#fff6ea", 0, 14, 0.62, 0.75, 1.2);
+  // narrow and nearly overhead: its hot spot lands on the roof and bonnet, and the car shades the floor under it
+  const key = phone ? null : new THREE.SpotLight("#fff6ea", 0, 14, 0.45, 0.9, 1.2);
   if (key) {
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
@@ -75,10 +86,10 @@ export function createGrounding(scene: THREE.Scene, car: RiggedCar, phone: boole
       shadow.scale.setScalar(spread);
       material.opacity = opacity * (1 - s.transition);
       if (key) {
-        const indoors = s.carX < layout.door && s.bay < 6;
-        key.intensity = indoors ? KEY_POWER * (1 - s.transition) : 0;
-        key.position.set(s.carX + 1.2, 5.6, 1.8);
-        key.target.position.set(s.carX, 0.4, 0);
+        const pool = poolKey(s.poolLight);
+        key.intensity = KEY_POWER * pool.power * (1 - s.transition);
+        key.position.set(pool.x + 1, 5.6, 0);
+        key.target.position.set(pool.x, 0.4, 0);
       }
     },
     dispose() {

@@ -19,6 +19,8 @@ const DOOR_TRAVEL = 3.4;
 const LIFT_HEIGHT = 0.55;
 const SPOT_POWER = 95;
 const SHAFT_ALPHA = 0.045;
+/** the baked light per zone: the workshop's pools are held down so the car, lit live, stays the brightest thing */
+const LIGHTMAP_INTENSITY: Record<string, number> = { workshop: 0.6, showroom: 1 };
 
 /** a soft beam of light in hazy air, from a spot down to the floor: additive, brightest at the lamp */
 function shaftMaterial() {
@@ -95,7 +97,7 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
     if (!clones.has(key)) {
       const m = src.clone();
       m.lightMap = map;
-      m.lightMapIntensity = 1;
+      m.lightMapIntensity = LIGHTMAP_INTENSITY[zone!] ?? 1;
       owned.push(m);
       clones.set(key, m);
     }

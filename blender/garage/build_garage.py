@@ -92,15 +92,16 @@ def material(name, color=(0.5, 0.5, 0.5), rough=0.5, metal=0.0, emit=None, stren
 
 M = {
     "floor_epoxy": material("floor_epoxy", (0.62, 0.63, 0.65), rough=0.28, tex="epoxy_floor.jpg"),
-    "wall_panel": material("wall_panel", (0.025, 0.025, 0.028), rough=0.85, tex="wall_panel.jpg"),
+    "wall_panel": material("wall_panel", (0.015, 0.015, 0.017), rough=0.85, tex="wall_panel.jpg"),
     "matte_black": material("matte_black", (0.012, 0.012, 0.014), rough=0.6),
     "chrome": material("chrome", (0.8, 0.8, 0.82), rough=0.15, metal=1),
     "door_metal": material("door_metal", (0.18, 0.19, 0.2), rough=0.35, metal=0.8),
-    "led_strip": material("led_strip", (1, 1, 1), emit=(1, 1, 1), strength=12),
+    # the strips are a glow, not the light: each bay's overhead pool carries the light (moody, cinematic v2)
+    "led_strip": material("led_strip", (1, 1, 1), emit=(1, 1, 1), strength=3.6),
     "line_white": material("line_white", (0.85, 0.85, 0.85), rough=0.4),
     "amber_accent": material("amber_accent", (0.8, 0.38, 0.04), rough=0.4, emit=(0.95, 0.4, 0.04), strength=3.0),
     "glass_booth": material("glass_booth", (0.75, 0.82, 0.9), rough=0.05, alpha=0.12),
-    "booth_light": material("booth_light", (1, 1, 1), emit=(1, 0.98, 0.95), strength=6),
+    "booth_light": material("booth_light", (1, 1, 1), emit=(1, 0.98, 0.95), strength=3.5),
     "sign_logo": material("sign_logo", (0, 0, 0), emit=(1, 1, 1), strength=1.5, tex=None),
     "street_plate": material("street_plate", (0.05, 0.06, 0.1), emit=(1, 1, 1), strength=1.0, tex="street_night.jpg"),
     "showroom_art": material("showroom_art", (0.1, 0.1, 0.1), emit=(1, 1, 1), strength=0.8, tex="showroom_art.jpg"),
@@ -199,12 +200,13 @@ def torus(name, R, r, at, mat, zone=None):
     return ob
 
 
-def area_light(name, at, size, power, color=(1, 1, 1)):
+def area_light(name, at, size, power, color=(1, 1, 1), spread=180):
     d = bpy.data.lights.new(name, "AREA")
     d.shape = "RECTANGLE"
     d.size, d.size_y = size
     d.energy = power
     d.color = color
+    d.spread = math.radians(spread)
     ob = bpy.data.objects.new(name, d)
     ob.location = W(*at)
     LIGHTS.objects.link(ob)
@@ -294,7 +296,8 @@ for i, key in enumerate(("wheels", "stance", "kit", "paint", "tint")):
     x = BAYS[key]
     bay_lines(x)
     numeral(x, f"{i + 1:02d}")
-    area_light(f"bay_light_{key}", (x, H - 0.3, 0), (5, 3), 900)
+    # a pool of light over the car's footprint (6000 K), narrow enough that the walls fall off into the dark
+    area_light(f"pool_{key}", (x, H - 0.4, 0), (5, 2.2), 600, (1.0, 0.96, 0.92), spread=60)
 
 # bay 01: two-post lift and a tyre rack
 xw = BAYS["wheels"]

@@ -11,7 +11,7 @@ const GradeShader = {
     tDiffuse: { value: null as THREE.Texture | null },
     time: { value: 0 },
     grain: { value: 0.045 },
-    vignette: { value: 0.42 },
+    vignette: { value: 0.5 },
     aspect: { value: 1 },
   },
   vertexShader: /* glsl */ `

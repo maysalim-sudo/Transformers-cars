@@ -40,7 +40,8 @@ export async function applySurfaces(root: THREE.Object3D): Promise<{ dispose(): 
         // epoxy is a clear coat over a speckled base: physical material, same lightmap and UVs
         const p = new THREE.MeshPhysicalMaterial({
           name: m.name,
-          color: m.color,
+          // a darker epoxy than the bake's base, for the moody workshop: the pools read on it without glaring
+          color: m.color.clone().multiplyScalar(0.2),
           map: albedo ?? m.map,
           lightMap: m.lightMap,
           lightMapIntensity: m.lightMapIntensity,

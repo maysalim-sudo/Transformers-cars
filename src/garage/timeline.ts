@@ -37,6 +37,8 @@ export type GarageState = {
   showLights: number[];
   /** rad */
   tableTurn: number;
+  /** each bay's overhead pool of light (wheels … tint), 0…1: full where the car is, handed over on the drives */
+  poolLight: number[];
   headlights: number;
   /**
    * `focus`: the world point depth of field focuses on (the part being worked on); fov in degrees.
@@ -208,6 +210,16 @@ function cameraAt(keys: Key[], p: number): { offset: Vec3; look: Vec3 } {
   return { offset: o0.map((v, k) => lerp(v, o1[k], t)) as Vec3, look: l0.map((v, k) => lerp(v, l1[k], t)) as Vec3 };
 }
 
+const POOL_X = [B.wheels, B.stance, B.kit, B.paint, B.tint];
+/** a pool is full with the car under it and fades out by the time the car reaches the next pool (10 m out past the ends) */
+function poolLight(carX: number): number[] {
+  return POOL_X.map((x, i) => {
+    const d = carX - x;
+    const gap = d > 0 ? (i === 0 ? 10 : POOL_X[i - 1] - x) : i === POOL_X.length - 1 ? 10 : x - POOL_X[i + 1];
+    return smoothstep(clamp01(1 - Math.abs(d) / gap));
+  });
+}
+
 const bayAt = (p: number): GarageState["bay"] => {
   let bay = 0;
   BAYS.forEach((start, i) => {
@@ -251,6 +263,7 @@ export function stateAt(p: number, opts: { portrait?: boolean; rtl?: boolean; wh
     showLights: Array.from({ length: layout.rig.count }, (_, i) => ss(LIGHT_ON(i), LIGHT_ON(i) + 0.015, p)),
     // the turntable holds still: the camera's orbit is the motion
     tableTurn: 0,
+    poolLight: poolLight(carX),
     headlights: flashing ? (Math.sin((p - 0.93) * 260) > 0 ? 1 : 0) : p >= 0.955 ? 1 : 0,
     camera: {
       pos: [carX + cam.offset[0], cam.offset[1] + lift * (portrait ? 0.3 : LIFT_HEIGHT), insideWalls(carX + cam.offset[0], cam.offset[2])],

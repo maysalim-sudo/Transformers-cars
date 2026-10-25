@@ -26,6 +26,8 @@ export type Garage = {
   /** the ladder dropped to a lighter tier */
   onTier(cb: (tier: Tier) => void): void;
   onLost(cb: () => void): void;
+  /** checks only (scripts/car-brightness.mjs): hide the garage so the car stands alone, to find its outline */
+  isolateCar(on: boolean): void;
   dispose(): void;
 };
 
@@ -197,6 +199,9 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
     onSlow: (cb) => void slow.push(cb),
     onTier: (cb) => void tierCbs.push(cb),
     onLost: (cb) => void lost.push(cb),
+    isolateCar(on) {
+      if (world) world.root.visible = !on;
+    },
     dispose() {
       disposed = true;
       canvas.removeEventListener("webglcontextlost", onContextLost);

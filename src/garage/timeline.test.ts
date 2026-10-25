@@ -230,6 +230,25 @@ describe("garage timeline", () => {
     });
   });
 
+  it("lights the active bay's pool, dims the others", () => {
+    for (const [i, p] of [0.195, 0.365, 0.515, 0.675, 0.81].entries()) {
+      const pools = stateAt(p).poolLight;
+      expect(pools, `p=${p}`).toHaveLength(5);
+      expect(pools[i], `p=${p} bay ${i + 1}`).toBe(1);
+      pools.forEach((v, j) => j !== i && expect(v, `p=${p} pool ${j + 1}`).toBeLessThanOrEqual(0.25));
+    }
+    // on the drives the pool behind hands over to the pool ahead
+    for (const [i, p] of [0.29, 0.44, 0.59, 0.755].entries()) {
+      const pools = stateAt(p).poolLight;
+      const sum = pools[i] + pools[i + 1];
+      expect(sum, `p=${p}`).toBeGreaterThanOrEqual(0.9);
+      expect(sum, `p=${p}`).toBeLessThanOrEqual(1.2);
+      expect(Math.min(pools[i], pools[i + 1]), `p=${p} both lit`).toBeGreaterThan(0.1);
+    }
+    // the showroom has its own rig
+    expect(Math.max(...stateAt(0.95).poolLight)).toBe(0);
+  });
+
   it("spins the wheels by the distance driven", () => {
     for (const p of [0, 0.1, 0.3, 0.95]) {
       const s = stateAt(p, { wheelRadius: 0.4 });

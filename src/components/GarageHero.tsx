@@ -220,6 +220,8 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
           });
           scene.onTier(remember);
           scene.onLost(toStill);
+          // the `?tier=` check URL hands the scene to measuring scripts (scripts/car-brightness.mjs)
+          if (pinned) (window as Window & { __garage?: Garage }).__garage = scene;
           onResize();
           return scene.ready.then(() => {
             if (cancelled || !scene) return;
