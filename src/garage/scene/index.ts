@@ -16,7 +16,7 @@ import { createHandheld } from "./handheld";
 import { FlarePass } from "./post/flares";
 import { apertureAt, blurStrength, focusDistance, rimBlurAmount } from "./post/lens";
 import { createLens } from "./post/lensPass";
-import { createLadder, TIER_FEATURES, type Tier } from "./quality";
+import { createLadder, featuresFor, type Tier } from "./quality";
 import { createFloorReflections, type FloorReflections } from "./reflections";
 import { loadWorld, type World } from "./world";
 
@@ -45,7 +45,7 @@ const NIGHT = new THREE.Color().setRGB(0.006, 0.009, 0.02);
  */
 export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; reduced?: boolean; tier: Tier; pinned?: boolean }): Garage {
   const { phone, reduced = false, pinned = false } = opts;
-  let features = TIER_FEATURES[opts.tier];
+  let features = featuresFor(opts.tier, phone);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !phone, powerPreference: "high-performance" });
   const dpr = () => Math.min(window.devicePixelRatio, phone ? 1.5 : Infinity, features.maxDpr);
   renderer.setPixelRatio(dpr());
@@ -138,7 +138,7 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
   }
 
   function applyTier(tier: Tier) {
-    features = TIER_FEATURES[tier];
+    features = featuresFor(tier, phone);
     filmEffects();
     if (!features.reflections && reflections) {
       reflections.dispose();

@@ -49,4 +49,13 @@ describe("device pre-check", () => {
     expect(startLevel("ultra", { level: "stills", at: 0 }, 8 * DAY)).toBe("ultra");
     expect(startLevel("ultra", { level: "low", at: 0 }, 8 * DAY)).toBe("ultra");
   });
+
+  it("starts phones at low and never above, whatever this device managed before", () => {
+    const phone = levelFromHints({ gpu: "Adreno (TM) 740", memory: 8, cores: 8, phone: true });
+    for (const level of ["ultra", "high", "medium", "low"] as const) {
+      expect(startLevel(phone, { level, at: 0 }, DAY), level).toBe("low");
+    }
+    expect(startLevel(phone, null, DAY)).toBe("low");
+  });
 });
+

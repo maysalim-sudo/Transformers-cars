@@ -111,7 +111,7 @@ const shot = (p: number, azimuth: number, elevation: number, distance: number, l
 const track = (p: number) => shot(p, 19, 3, 7, AT.body, 30);
 // each bay: the camera arrives as the car stops, then orbits its part while the work happens, the
 // direction alternating bay to bay; the drives between are tracking shots
-const shots: Shot[] = [
+const landscapeShots: Shot[] = [
   shot(0, 67.9, -1.3, 17.8, [-6, 2.2, -3.2], 36), // arrival: the street, the facade and the sign
   shot(0.02, 67.9, -1.3, 17.8, [-6, 2.2, -3.2], 36),
   track(0.065),
@@ -152,7 +152,7 @@ function arrivalShift(p: number, rtl: boolean): number {
   return shift * (1 - ss(0.06, 0.1, p));
 }
 
-function shotAt(p: number): { offset: Vec3; look: Vec3; fov: number } {
+function shotAt(p: number, shots: Shot[] = landscapeShots): { offset: Vec3; look: Vec3; fov: number } {
   let i = 1;
   while (i < shots.length - 1 && p > shots[i].p) i++;
   const a = shots[i - 1];
@@ -174,7 +174,7 @@ type Key = [number, Vec3, Vec3];
 // 3.4 m roof, so it dips before the car goes in and rises only once it is out.
 const OVER: [Vec3, Vec3] = [[1.4, 4.4, 0.3], [-0.4, 0, 0]];
 const portraitCams: Key[] = [
-  [0.0, [9, 4.5, 4.2], [-6, 1.6, -1]],
+  [0.0, [9, 4.5, 4.2], [-8, 2.4, 0]],
   [0.05, ...OVER],
   [0.125, ...OVER],
   [0.15, [-4.6, 3.2, 4.4], [0, 0.6, 0]], // wheels
@@ -185,8 +185,8 @@ const portraitCams: Key[] = [
   [0.405, [-3.2, 2.2, 4.6], [-0.6, 0.4, 0]],
   [0.435, ...OVER],
   [0.46, ...OVER],
-  [0.49, [-5, 3, 4.0], [-1.2, 0.5, 0]], // body kit
-  [0.555, [-5, 3, 4.0], [-1.2, 0.5, 0]],
+  [0.49, [5, 3, 4.0], [0.8, 0.5, 0]], // body kit, from the tail (its cart stands at the nose)
+  [0.555, [5, 3, 4.0], [0.8, 0.5, 0]],
   [0.565, ...OVER],
   [0.59, [-4.4, 2.9, 5.6], [0, 0.8, 0]], // paint booth
   [0.735, [-4.4, 2.9, 5.6], [0, 0.8, 0]],
@@ -195,13 +195,20 @@ const portraitCams: Key[] = [
   [0.79, [-1.6, 2.7, 4.6], [0, 1.1, 0]], // tint
   [0.835, [-1.6, 2.7, 4.6], [0, 1.1, 0]],
   [0.85, ...OVER],
-  [0.9, [6.4, 2.6, 6.2], [-1.2, 1.0, 0]], // reveal
-  [1.0, [6.6, 1.9, 5.4], [-1.2, 1.1, -0.4]],
 ];
+// the reveal on a tall screen: from the cover pull, one full turn round the car (as on desktop), low and far
+// inside the curved backdrop (layout.showroom.backdrop), so a side-on view crops the bumpers a little
+const portraitOrbit: Shot[] = [
+  shot(0.9, -40, 10, 8.2, [0, 0.8, 0], PORTRAIT_FOV),
+  shot(0.99, 320, 10, 8.2, [0, 0.8, 0], PORTRAIT_FOV, true),
+  shot(1, 320, 10, 8.2, [0, 0.8, 0], PORTRAIT_FOV),
+];
+const orbitStart = shotAt(0.9, portraitOrbit);
+portraitCams.push([0.9, orbitStart.offset, orbitStart.look]);
 
-/** Past the door, keep the camera half a metre inside the side walls. */
-const WALL_Z = layout.hall.halfWidth - 0.5;
-const insideWalls = (x: number, z: number) => (x < layout.door ? Math.max(-WALL_Z, Math.min(WALL_Z, z)) : z);
+/** Past the door, keep the camera half a metre inside the side walls (the showroom, past the split, is wider). */
+export const wallAt = (x: number) => (x >= layout.door ? Infinity : (x < layout.split ? layout.showroom.halfWidth : layout.hall.halfWidth) - 0.5);
+const insideWalls = (x: number, z: number) => Math.max(-wallAt(x), Math.min(wallAt(x), z));
 
 function cameraAt(keys: Key[], p: number): { offset: Vec3; look: Vec3 } {
   let i = 1;
@@ -237,7 +244,7 @@ export function stateAt(p: number, opts: { portrait?: boolean; rtl?: boolean; wh
   const { portrait = false, rtl = false, wheelRadius = 0.36 } = opts;
   const { x: carX, speed } = drive(p);
   const lift = visit(0.15, 0.18, 0.245, 0.265, p);
-  const cam = portrait ? { ...cameraAt(portraitCams, p), fov: PORTRAIT_FOV } : shotAt(p);
+  const cam = !portrait ? shotAt(p) : p >= 0.9 ? shotAt(p, portraitOrbit) : { ...cameraAt(portraitCams, p), fov: PORTRAIT_FOV };
   const look: Vec3 = [carX + cam.look[0], cam.look[1] + lift * (portrait ? 0.5 : LIFT_HEIGHT), cam.look[2]];
   const flashing = p > 0.93 && p < 0.955;
 

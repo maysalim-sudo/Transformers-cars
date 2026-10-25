@@ -17,7 +17,7 @@ HW = L["hall"]["halfWidth"]
 DOOR, SPLIT, SHOW = L["door"], L["split"], L["show"]
 BAYS = L["bays"]
 SHOW_END = SHOW - 12  # back of the showroom
-SHOW_HW, SHOW_H = 10, 8
+SHOW_HW, SHOW_H = L["showroom"]["halfWidth"], L["showroom"]["height"]
 
 if DRY:
     print("bays", BAYS, "door", DOOR, "split", SPLIT, "show", SHOW)
@@ -363,7 +363,7 @@ for s in (-1, 1):
         frame = plane(f"art_{s:+d}_{j}", x - 1.5, x + 1.5, s * (SHOW_HW - 0.02), s * (SHOW_HW - 0.02), 3.0, M["showroom_art"])
 # curved backdrop behind the turntable with vertical light slats
 bm = bmesh.new()
-segs, R = 40, 9
+segs, R = 40, L["showroom"]["backdrop"]
 cx = SHOW
 pts = []
 for i in range(segs + 1):

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { calloutPlace } from "@/garage/callout";
 import { type Level, levelFromHints, readHints, readRemembered, remember, startLevel } from "@/garage/device";
 import type { AnchorId } from "@/garage/heroCar";
 import type { Garage } from "@/garage/scene";
@@ -147,6 +148,12 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
         const at = scene!.project(ANCHORS[i]);
         el.dataset.on = at.visible ? "1" : "0";
         el.style.transform = `translate(${at.x.toFixed(1)}px, ${at.y.toFixed(1)}px)`;
+        const card = el.lastElementChild as HTMLElement | null;
+        if (card) {
+          const place = calloutPlace({ x: at.x, card: card.offsetWidth, view: canvasEl.clientWidth || innerWidth, rtl });
+          el.dataset.flip = place.flip ? "1" : "0";
+          card.style.translate = `${place.shift.toFixed(1)}px 0`;
+        }
       });
     };
 
@@ -288,12 +295,14 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
             key={id}
             ref={(el) => void (callouts.current[i] = el)}
             data-on="0"
-            className="pointer-events-none absolute left-0 top-0 opacity-0 transition-opacity duration-300 data-[on=1]:opacity-100"
+            data-flip="0"
+            className="group pointer-events-none absolute left-0 top-0 opacity-0 transition-opacity duration-300 data-[on=1]:opacity-100"
             aria-hidden
           >
             <span className="absolute -start-1.5 -top-1.5 size-3 rounded-full bg-accent-strong shadow-[0_0_0_5px_rgba(240,176,78,.18),0_0_18px_var(--accent)]" />
-            <span className="absolute start-0 top-0 h-px w-16 origin-left -rotate-[32deg] bg-gradient-to-r from-accent-strong to-accent-strong/20 rtl:origin-right rtl:rotate-[32deg]" />
-            <span className="absolute -top-16 start-14 whitespace-nowrap rounded-xl border border-line bg-ink-900/85 px-3 py-2 backdrop-blur-md">
+            {/* near the screen edge the card goes on the other side of the dot (data-flip, set each frame) */}
+            <span className="absolute start-0 top-0 h-px w-16 origin-left -rotate-[32deg] bg-gradient-to-r from-accent-strong to-accent-strong/20 group-data-[flip=1]:-scale-x-100 rtl:origin-right rtl:rotate-[32deg]" />
+            <span className="absolute -top-16 start-14 whitespace-nowrap group-data-[flip=1]:start-auto group-data-[flip=1]:end-14 rounded-xl border border-line bg-ink-900/85 px-3 py-2 backdrop-blur-md">
               <small className="block font-mono text-[10px] uppercase tracking-[0.24em] text-accent">{g.callouts[id].label}</small>
               <b className="font-display text-[15px] font-normal text-snow">{g.callouts[id].value}</b>
             </span>

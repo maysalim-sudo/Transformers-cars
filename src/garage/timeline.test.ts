@@ -101,11 +101,12 @@ describe("garage timeline", () => {
     expect({ ...port, camera: null }).toEqual({ ...land, camera: null });
   });
 
-  it("keeps the camera inside the side walls once it is past the door, on every screen shape", () => {
+  it("keeps the camera inside the side walls (the showroom's are wider) once it is past the door, on every screen shape", () => {
     for (const portrait of [false, true]) {
       for (let i = 0; i <= 1000; i++) {
         const [x, , z] = stateAt(i / 1000, { portrait }).camera.pos;
-        if (x < layout.door) expect(Math.abs(z), `p=${i / 1000} portrait=${portrait}`).toBeLessThanOrEqual(layout.hall.halfWidth - 0.5);
+        const wall = x < layout.split ? layout.showroom.halfWidth : layout.hall.halfWidth;
+        if (x < layout.door) expect(Math.abs(z), `p=${i / 1000} portrait=${portrait}`).toBeLessThanOrEqual(wall - 0.5);
       }
     }
   });
@@ -197,6 +198,16 @@ describe("garage timeline", () => {
     });
   });
 
+  it("keeps the camera inside the curved backdrop behind the turntable, on every screen shape", () => {
+    const { show, showroom } = layout;
+    for (const portrait of [false, true]) {
+      for (let i = 0; i <= 1000; i++) {
+        const [x, , z] = stateAt(i / 1000, { portrait }).camera.pos;
+        if (x < show) expect(Math.hypot(x - show, z), `p=${i / 1000} portrait=${portrait}`).toBeLessThanOrEqual(showroom.backdrop - 0.5);
+      }
+    }
+  });
+
   describe("phone camera: overhead on the drives, dipping in at each bay", () => {
     /** how steeply the camera looks down, in degrees */
     const pitch = (p: number) => {
@@ -218,6 +229,21 @@ describe("garage timeline", () => {
 
     it("comes down low for the reveal", () => {
       expect(pitch(0.99)).toBeLessThan(30);
+    });
+
+    it("circles the tuned car once from the cover pull, like desktop", () => {
+      const bearing = (p: number) => {
+        const { pos, look } = stateAt(p, { portrait: true }).camera;
+        return (Math.atan2(pos[0] - look[0], pos[2] - look[2]) * 180) / Math.PI;
+      };
+      let total = 0;
+      for (const p of range(0.901, 1, 0.001)) {
+        let d = bearing(p) - bearing(Math.round((p - 0.001) * 1e6) / 1e6);
+        d -= 360 * Math.round(d / 360);
+        total += d;
+      }
+      expect(Math.abs(total)).toBeGreaterThanOrEqual(355);
+      expect(Math.abs(total)).toBeLessThanOrEqual(365);
     });
 
     it("stays under the workshop ceiling, and under the booth roof whenever it is over the booth", () => {

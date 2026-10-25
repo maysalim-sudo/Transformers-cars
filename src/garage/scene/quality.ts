@@ -25,6 +25,12 @@ export const TIER_FEATURES: Record<Tier, TierFeatures> = {
   low: { motionBlur: false, dof: false, reflections: false, flares: false, rays: false, shadows: false, maxDpr: 1.25 },
 };
 
+/** a tier's effects on this device: phones never get depth of field, motion blur, reflections or flares */
+export function featuresFor(tier: Tier, phone: boolean): TierFeatures {
+  const f = TIER_FEATURES[tier];
+  return phone ? { ...f, dof: false, motionBlur: false, reflections: false, flares: false } : f;
+}
+
 export type Ladder = { readonly tier: Tier; frame(now: number): "drop" | "stills" | null };
 
 export function createLadder(start: Tier): Ladder {

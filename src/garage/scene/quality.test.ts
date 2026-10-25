@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createLadder, TIER_FEATURES, TIERS, tierFromQuery } from "./quality";
+import { createLadder, featuresFor, TIER_FEATURES, TIERS, tierFromQuery } from "./quality";
 
 /** Feed `count` frames `step` ms apart from `from`; returns every verdict with the tier after it. */
 function run(ladder: ReturnType<typeof createLadder>, from: number, step: number, count: number) {
@@ -64,5 +64,13 @@ describe("quality ladder", () => {
     expect(tierFromQuery("?x=1&tier=low")).toBe("low");
     expect(tierFromQuery("?tier=potato")).toBeNull();
     expect(tierFromQuery("")).toBeNull();
+  });
+
+  it("never gives phones depth of field, motion blur, reflections or flares, on any tier", () => {
+    for (const t of TIERS) {
+      const f = featuresFor(t, true);
+      expect([f.dof, f.motionBlur, f.reflections, f.flares], t).toEqual([false, false, false, false]);
+      expect(featuresFor(t, false)).toEqual(TIER_FEATURES[t]);
+    }
   });
 });

@@ -122,6 +122,10 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
     if (!node || !work) return [];
     return [{ name, node, rest: node.position.toArray() as [number, number, number], work: work.position.toArray() as [number, number, number] }];
   });
+  // phones draw less: props and tools more than a bay away from the car are hidden
+  const PROP = /^(cart_|compressor_|jack_stand_|reel_|heat_gun_|panel_|tool_)/;
+  const props: THREE.Object3D[] = [];
+  if (phone) root.children.forEach((o) => PROP.test(o.name) && props.push(o));
   const rest = Object.fromEntries(Object.entries(nodes).map(([k, n]) => [k, n.position.clone()])) as Record<MovingNode, THREE.Vector3>;
   // the cover rides on the turntable; its pull-off is a baked morph clip that the scroll scrubs
   if (nodes.cover && nodes.turntable) nodes.turntable.attach(nodes.cover);
@@ -226,6 +230,7 @@ export async function loadWorld(loader: GLTFLoader, scene: THREE.Scene, phone: b
       // (only in the paint bay; elsewhere it waits at its end of the booth)
       if (nodes.gantry) nodes.gantry.position.x = s.bay === 4 ? carX + (-1.1 + 2.2 * s.paintSweep) * (carLength / 2) : rest.gantry.x;
       if (nodes.turntable) nodes.turntable.rotation.y = s.tableTurn;
+      for (const o of props) o.visible = Math.abs(o.position.x - carX) < 12;
       for (const t of tools) {
         const v = s.tools[t.name];
         const work: [number, number, number] = [...t.work];
