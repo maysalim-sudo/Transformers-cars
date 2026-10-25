@@ -29,8 +29,11 @@ const browser = await chromium.launch({
       ? ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=gl"]
       : [],
 });
+// a phone-sized shot is a phone: touch screen, so the garage treats it as one (device.ts isPhoneDevice)
+const phone = Math.min(Number(w), Number(h)) < 768;
 const page = await browser.newPage({
   viewport: { width: Number(w), height: Number(h) },
+  ...(phone ? { isMobile: true, hasTouch: true, screen: { width: Number(w), height: Number(h) } } : {}),
   reducedMotion: flags.has("--reduced") ? "reduce" : "no-preference",
 });
 if (flags.has("--raf")) {

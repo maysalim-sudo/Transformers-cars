@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { stateAt } from "../../timeline";
-import { apertureAt, blurStrength, focusDistance, rimBlurAmount } from "./lens";
+import * as THREE from "three";
+import { apertureAt, blurStrength, focusDistance, previousPoint, rimBlurAmount } from "./lens";
 
 describe("film effects: the pure parts", () => {
   it("focuses on the part, or on the car when the part is out of view (never at infinity)", () => {
@@ -29,4 +30,16 @@ describe("film effects: the pure parts", () => {
     expect(blurStrength(0.001, false)).toBe(0);
     expect(blurStrength(0.1, false)).toBeGreaterThan(0);
   });
+
+  it("moves a point on the car with the car, and leaves the garage where it was", () => {
+    // the car drove 0.3 m toward -x since last frame (the camera tracked it)
+    const now = new THREE.Matrix4().makeTranslation(9.7, 0, 0);
+    const prev = new THREE.Matrix4().makeTranslation(10, 0, 0);
+    const box = { center: new THREE.Vector3(0, 0.8, 0), half: new THREE.Vector3(2.4, 1, 1.1) };
+    const onCar = previousPoint(new THREE.Vector3(9.7 + 1, 0.5, 0.9), now, prev, box);
+    expect(onCar.toArray().map((v) => +v.toFixed(9))).toEqual([10 + 1, 0.5, 0.9]);
+    const wall = previousPoint(new THREE.Vector3(9.7, 1, -6.9), now, prev, box);
+    expect(wall.toArray()).toEqual([9.7, 1, -6.9]);
+  });
 });
+

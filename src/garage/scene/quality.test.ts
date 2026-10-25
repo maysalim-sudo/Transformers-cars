@@ -73,4 +73,22 @@ describe("quality ladder", () => {
       expect(featuresFor(t, false)).toEqual(TIER_FEATURES[t]);
     }
   });
+
+  it("keeps watching after a good start: a heavier part of the scroll later still sheds a tier", () => {
+    const ladder = createLadder("ultra");
+    const { t } = run(ladder, 0, 16.7, 180); // 3 s of the light arrival at 60 fps
+    const { out } = run(ladder, t, 33, 150); // then 5 s in a heavy bay at 30 fps
+    expect(out[0]?.v).toBe("drop");
+    expect(out[0]?.tier).toBe("high");
+  });
+
+  it("does not drop for a single slow second once the start was good (a hitch, a compile)", () => {
+    const ladder = createLadder("ultra");
+    const { t } = run(ladder, 0, 16.7, 180);
+    const hitch = run(ladder, t, 33, 31); // one slow second
+    const after = run(ladder, hitch.t, 16.7, 300);
+    expect([...hitch.out, ...after.out]).toEqual([]);
+    expect(ladder.tier).toBe("ultra");
+  });
 });
+

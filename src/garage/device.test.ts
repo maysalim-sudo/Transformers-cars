@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { levelFromHints, startLevel } from "./device";
+import { isPhoneDevice, levelFromHints, startLevel } from "./device";
 
 const desktop = { gpu: "ANGLE (NVIDIA, NVIDIA GeForce RTX 3050 Direct3D11 vs_5_0 ps_5_0)", memory: 8, cores: 12, phone: false };
 const DAY = 24 * 3600 * 1000;
@@ -56,6 +56,14 @@ describe("device pre-check", () => {
       expect(startLevel(phone, { level, at: 0 }, DAY), level).toBe("low");
     }
     expect(startLevel(phone, null, DAY)).toBe("low");
+  });
+
+  it("knows a phone by its touch screen and small screen, whichever way it is held", () => {
+    expect(isPhoneDevice({ coarse: true, screen: [390, 844] })).toBe(true);
+    expect(isPhoneDevice({ coarse: true, screen: [844, 390] })).toBe(true); // landscape
+    expect(isPhoneDevice({ coarse: true, screen: [820, 1180] })).toBe(false); // a tablet
+    expect(isPhoneDevice({ coarse: false, screen: [1440, 900] })).toBe(false);
+    expect(isPhoneDevice({ coarse: false, screen: [700, 900] })).toBe(false); // a narrow desktop window is not a phone
   });
 });
 

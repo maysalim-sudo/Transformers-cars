@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { calloutPlace } from "@/garage/callout";
-import { type Level, levelFromHints, readHints, readRemembered, remember, startLevel } from "@/garage/device";
+import { isPhoneDevice, type Level, levelFromHints, readHints, readRemembered, remember, startLevel } from "@/garage/device";
 import type { AnchorId } from "@/garage/heroCar";
 import type { Garage } from "@/garage/scene";
 import { tierFromQuery } from "@/garage/scene/quality";
@@ -213,7 +213,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
 
     // pick the tier this device can likely hold before downloading anything 3D (no WebGL2, a software
     // renderer or a data saver keep the stills); `?tier=` pins one for checks and leaves no memory
-    const phone = innerWidth < 768;
+    const phone = isPhoneDevice({ coarse: matchMedia("(pointer: coarse)").matches, screen: [screen.width, screen.height] });
     const pinned = tierFromQuery(location.search);
     const level: Level = reduced ? "stills" : (pinned ?? startLevel(levelFromHints(readHints(phone)), readRemembered(), Date.now()));
     if (level !== "stills") {

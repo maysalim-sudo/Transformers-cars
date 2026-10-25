@@ -3,8 +3,9 @@
  * reading the depth that render kept (the composer's targets carry a DepthTexture), so neither effect draws
  * the scene again.
  * - Motion blur: each pixel's world point, seen through last frame's camera, gives its screen velocity;
- *   samples along it, scaled by the shutter (blurStrength). The camera tracks the car, so the car stays sharp
- *   and the garage streaks past.
+ *   samples along it, scaled by the shutter (blurStrength). A point inside the car's box rode with the car, so
+ *   it is carried back by the car's own move (lens.ts previousPoint): the car tracked by the camera stays
+ *   sharp and the garage streaks past.
  * - Depth of field: a circle of confusion from the pixel's distance against the focus distance; a spiral
  *   gather whose taps only count where their own blur reaches back (so a sharp subject does not bleed).
  */
@@ -26,6 +27,10 @@ const shader = {
     projInv: { value: new THREE.Matrix4() },
     viewInv: { value: new THREE.Matrix4() },
     prevViewProj: { value: new THREE.Matrix4() },
+    carInv: { value: new THREE.Matrix4() },
+    carPrev: { value: new THREE.Matrix4() },
+    carCenter: { value: new THREE.Vector3() },
+    carHalf: { value: new THREE.Vector3() },
     shutter: { value: 0 },
     focus: { value: 5 },
     aperture: { value: 0 },
@@ -39,7 +44,8 @@ const shader = {
     uniform sampler2D tColor;
     uniform sampler2D tDepth;
     uniform float near, far, shutter, focus, aperture;
-    uniform mat4 projInv, viewInv, prevViewProj;
+    uniform mat4 projInv, viewInv, prevViewProj, carInv, carPrev;
+    uniform vec3 carCenter, carHalf;
     uniform vec2 resolution;
     varying vec2 vUv;
     const int TAPS = ${TAPS};
@@ -56,6 +62,9 @@ const shader = {
       if (shutter > 0.0 && d < 1.0) {
         vec4 v = projInv * vec4(vUv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
         vec4 world = viewInv * vec4(v.xyz / v.w, 1.0);
+        // a point on the car moved with it (see lens.ts previousPoint)
+        vec3 local = (carInv * world).xyz - carCenter;
+        if (all(lessThanEqual(abs(local), carHalf))) world = carPrev * vec4(local + carCenter, 1.0);
         vec4 prev = prevViewProj * world;
         if (prev.w > 0.0) velocity = (vUv - (prev.xy / prev.w * 0.5 + 0.5)) * shutter;
         float len = length(velocity);
@@ -109,6 +118,7 @@ export class LensPass extends Pass {
 export function createLens() {
   const pass = new LensPass();
   const prev = new THREE.Matrix4();
+  const prevCar = new THREE.Matrix4();
   let first = true;
   let dof = false;
   let blur = false;
@@ -122,9 +132,9 @@ export function createLens() {
     },
     /**
      * Call after the camera is placed for this frame. `shutter` comes from blurStrength (0 on a jump);
-     * `focus` is the distance in metres, `aperture` 0 … 1 from apertureAt.
+     * `focus` is the distance in metres, `aperture` 0 … 1 from apertureAt; `car` is the car's world matrix.
      */
-    update(camera: THREE.PerspectiveCamera, opts: { focus: number; aperture: number; shutter: number; height: number }) {
+    update(camera: THREE.PerspectiveCamera, opts: { focus: number; aperture: number; shutter: number; height: number; car: THREE.Matrix4 }) {
       const u = pass.uniforms;
       camera.updateMatrixWorld();
       u.near.value = camera.near;
@@ -137,7 +147,15 @@ export function createLens() {
       u.shutter.value = blur && !first ? opts.shutter : 0;
       u.prevViewProj.value.copy(prev);
       prev.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      u.carInv.value.copy(opts.car).invert();
+      u.carPrev.value.copy(first ? opts.car : prevCar);
+      prevCar.copy(opts.car);
       first = false;
+    },
+    /** the car's box in its own space (centre, half-extents), with room for the lift and a margin */
+    setCarBox(center: THREE.Vector3, half: THREE.Vector3) {
+      pass.uniforms.carCenter.value.copy(center);
+      pass.uniforms.carHalf.value.copy(half);
     },
     dispose: () => pass.dispose(),
   };

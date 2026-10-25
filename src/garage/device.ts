@@ -32,6 +32,14 @@ export function startLevel(checked: Level, remembered: Remembered | null, now: n
   return rank(cap) > rank(checked) ? cap : checked;
 }
 
+/**
+ * A phone, whichever way it is held: a touch screen whose short side is under 768 px. This is about the
+ * hardware, so it never looks at the window (a narrow desktop window is still a desktop, a landscape phone a phone).
+ */
+export function isPhoneDevice({ coarse, screen }: { coarse: boolean; screen: [number, number] }): boolean {
+  return coarse && Math.min(...screen) < 768;
+}
+
 /** What the browser tells us about this device (the GPU name comes from a throwaway WebGL2 context). */
 export function readHints(phone: boolean): Hints {
   let gpu: string | null = null;

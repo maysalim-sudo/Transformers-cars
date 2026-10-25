@@ -2,6 +2,7 @@
  * The pure parts of the film effects: where the lens focuses, how wide it opens, how much the camera smears,
  * and when the wheels' rims blur. The passes (lensPass.ts, flares.ts) and the car rig use these.
  */
+import * as THREE from "three";
 import type { GarageState, Vec3 } from "../../timeline";
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -30,4 +31,23 @@ export function rimBlurAmount(spinSpeed: number): number {
 /** the motion blur's shutter (0 … 0.5, a 180° shutter at most): none on a jump, none for a camera barely moving */
 export function blurStrength(cameraDelta: number, jumped: boolean): number {
   return jumped ? 0 : 0.5 * ss(0.002, 0.02, cameraDelta);
+}
+
+const local = new THREE.Vector3();
+const inverse = new THREE.Matrix4();
+
+/**
+ * Where a world point was last frame, for the motion blur. The garage stands still; a point inside the car's
+ * box (car-local centre and half-extents) rode with the car, so it is carried back by the car's own move.
+ * The lens shader does the same per pixel; this is its tested reference.
+ */
+export function previousPoint(
+  world: THREE.Vector3,
+  carNow: THREE.Matrix4,
+  carPrev: THREE.Matrix4,
+  box: { center: THREE.Vector3; half: THREE.Vector3 },
+): THREE.Vector3 {
+  local.copy(world).applyMatrix4(inverse.copy(carNow).invert()).sub(box.center);
+  const inside = Math.abs(local.x) <= box.half.x && Math.abs(local.y) <= box.half.y && Math.abs(local.z) <= box.half.z;
+  return inside ? local.add(box.center).applyMatrix4(carPrev).clone() : world.clone();
 }

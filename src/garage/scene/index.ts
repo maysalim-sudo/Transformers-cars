@@ -101,6 +101,11 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
     car = rigCar(carGltf.scene);
     car.group.traverse((o) => ((o as THREE.Mesh).isMesh && ((o.castShadow = true), (o.receiveShadow = true))));
     scene.add(car.group);
+    // the car's box for the motion blur (car-local, measured before it moves): tall enough for the lift
+    const carBox = new THREE.Box3().setFromObject(car.group);
+    const carHalf = carBox.getSize(new THREE.Vector3()).multiplyScalar(0.5).addScalar(0.1);
+    carHalf.y += 0.3;
+    lens.setCarBox(carBox.getCenter(new THREE.Vector3()).setY(carBox.getCenter(new THREE.Vector3()).y + 0.3), carHalf);
     effects = createEffects(scene, car, reduced);
     grounding = createGrounding(scene, car, phone);
     if (!features.shadows) shadowsOff();
@@ -201,11 +206,13 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
       firstFrame = false;
       v.set(...s.camera.focus).project(camera);
       const inView = v.z < 1 && Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1;
+      car.group.updateWorldMatrix(true, false);
       lens.update(camera, {
         focus: focusDistance(s.camera.pos, s.camera.focus, [s.carX, 0.8, 0], inView),
         aperture: apertureAt(s),
         shutter: blurStrength(moved, jumped),
         height: size.h * renderer.getPixelRatio(),
+        car: car.group.matrixWorld,
       });
       const spin = jumped || dt === 0 ? 0 : (s.wheelSpin - lastSpin) / dt;
       lastSpin = s.wheelSpin;
@@ -213,11 +220,13 @@ export function createGarage(canvas: HTMLCanvasElement, opts: { phone: boolean; 
     },
     render() {
       if (!car) return;
-      grade.tick(performance.now() / 1000);
-      composer.render();
+      // judge the frames so far before drawing this one: a tier change resizes the canvas (DPR), which
+      // clears it, so it must never land between a draw and the browser showing it (a black frame)
       const verdict = ladder?.frame(performance.now());
       if (verdict === "drop") applyTier(ladder!.tier);
-      else if (verdict === "stills") slow.forEach((cb) => cb());
+      else if (verdict === "stills") return slow.forEach((cb) => cb());
+      grade.tick(performance.now() / 1000);
+      composer.render();
     },
     project(id) {
       if (!car) return { x: 0, y: 0, visible: false };
