@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import layout from "./layout.json";
-import { BAYS, LIGHT_ON, stateAt } from "./timeline";
+import { BAYS, LIGHT_ON, showcaseAt, stateAt } from "./timeline";
 
 const range = (a: number, b: number, step = 0.005) => {
   const out: number[] = [];
@@ -302,6 +302,44 @@ describe("garage timeline", () => {
         if (stateAt(p).wheelsOff > 0.5) expect(stateAt(p).tools.wrench, `p=${p}`).toBe(0);
       }
     });
+  });
+
+  describe("phone showcase: the tuned car circling on its own", () => {
+    it("on a phone held sideways, keeps the car out of the headline's half (mirrored for right-to-left)", () => {
+      expect(showcaseAt(0.4).camera.shift).toBeGreaterThanOrEqual(0.15);
+      expect(showcaseAt(0.4, { rtl: true }).camera.shift).toBeLessThanOrEqual(-0.15);
+      expect(showcaseAt(0.4, { portrait: true }).camera.shift).toBe(0); // upright, the headline sits below the car
+    });
+
+    for (const portrait of [true, false]) {
+      it(`shows the finished car under every showroom light (${portrait ? "portrait" : "landscape"})`, () => {
+        for (const t of [0, 0.3, 0.7]) {
+          const s = showcaseAt(t, { portrait });
+          expect(s.carX).toBe(layout.show);
+          expect(s.coverVisible).toBe(false);
+          expect(s.done.every(Boolean)).toBe(true);
+          expect(Math.min(...s.showLights)).toBeGreaterThanOrEqual(0.99);
+          expect(s.carSpeed).toBe(0);
+        }
+      });
+
+      it(`circles once per loop and joins seamlessly (${portrait ? "portrait" : "landscape"})`, () => {
+        const bearing = (t: number) => {
+          const { pos, look } = showcaseAt(t, { portrait }).camera;
+          return (Math.atan2(pos[0] - look[0], pos[2] - look[2]) * 180) / Math.PI;
+        };
+        let total = 0;
+        for (let i = 1; i <= 200; i++) {
+          let d = bearing(i / 200) - bearing((i - 1) / 200);
+          d -= 360 * Math.round(d / 360);
+          total += d;
+        }
+        expect(Math.abs(total)).toBeCloseTo(360, 0);
+        showcaseAt(0, { portrait }).camera.pos.forEach((v, k) => expect(showcaseAt(1, { portrait }).camera.pos[k]).toBeCloseTo(v, 6));
+        // any t, even past one loop, is a point on the same loop
+        showcaseAt(2.25, { portrait }).camera.pos.forEach((v, k) => expect(showcaseAt(0.25, { portrait }).camera.pos[k]).toBeCloseTo(v, 6));
+      });
+    }
   });
 
   it("spins the wheels by the distance driven", () => {

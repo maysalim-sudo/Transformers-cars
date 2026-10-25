@@ -2,6 +2,16 @@
 
 /* room for side panels: wide AND tall (a phone on its side is wide but only ~390 px tall) */
 @custom-variant roomy (@media (min-width: 640px) and (min-height: 560px));
+/* a phone, whichever way it is held (touch, and a short side under 768 px): the garage hero is one screen
+   there, not a scroll story. Keep in step with PHONE_QUERY in src/garage/device.ts */
+@custom-variant phone {
+  @media (pointer: coarse) and (max-width: 767px) {
+    @slot;
+  }
+  @media (pointer: coarse) and (max-height: 767px) {
+    @slot;
+  }
+}
 
 /* ---------- Tokens ---------- */
 :root {

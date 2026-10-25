@@ -291,3 +291,24 @@ export function stateAt(p: number, opts: { portrait?: boolean; rtl?: boolean; wh
     },
   };
 }
+
+/** how far the showcase moves the car aside on a phone held sideways (fraction of the frame width) */
+const SHOWCASE_SHIFT = 0.3;
+
+/**
+ * The phone hero's showcase: the finished car on the turntable under every showroom light, the camera
+ * circling it on its own, once per loop. `t` is loop progress (any number: t and t + 1 are the same frame),
+ * so the page drives it with time instead of scroll. The orbit is the reveal's, which ends where it starts.
+ */
+export function showcaseAt(t: number, opts: { portrait?: boolean; rtl?: boolean } = {}): GarageState {
+  const { portrait = false, rtl = false } = opts;
+  const s = stateAt(1, { portrait });
+  const loop = t - Math.floor(t);
+  const cam = shotAt(0.9 + 0.09 * loop, portrait ? portraitOrbit : landscapeShots);
+  const look: Vec3 = [s.carX + cam.look[0], cam.look[1], cam.look[2]];
+  return {
+    ...s,
+    // held sideways the headline sits beside the car, not below it: shift the picture to the other side
+    camera: { pos: [s.carX + cam.offset[0], cam.offset[1], insideWalls(s.carX + cam.offset[0], cam.offset[2])], look, focus: look, fov: cam.fov, shift: portrait ? 0 : rtl ? -SHOWCASE_SHIFT : SHOWCASE_SHIFT },
+  };
+}

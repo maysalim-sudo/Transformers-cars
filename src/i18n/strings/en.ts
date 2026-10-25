@@ -185,6 +185,8 @@ const en = {
     eyebrow: "Garage · Showroom · Sousse",
     title: "Drive in stock. Roll out transformed.",
     lead: "Scroll to take a car through our workshop, bay by bay, all the way to the showroom floor.",
+    // phones get a one-screen hero (the car circling in the showroom), not the scroll story
+    leadPhone: "Wheels, stance, body kit, paint and tint: every car leaves our workshop transformed.",
     scroll: "Scroll ↓",
     jobCard: {
       title: "Job card · #0427",

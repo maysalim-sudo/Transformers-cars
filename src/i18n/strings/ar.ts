@@ -186,6 +186,8 @@ const ar: Strings = {
     eyebrow: "ورشة · معرض · سوسة",
     title: "تدخل أصلية. تخرج متحوّلة.",
     lead: "مرّر لتتابع سيارة داخل ورشتنا، مرحلة بمرحلة، حتى أرضية المعرض.",
+    // phones get a one-screen hero (the car circling in the showroom), not the scroll story
+    leadPhone: "جنوط، تخفيض، بودي كيت، طلاء وتظليل: كل سيارة تخرج من ورشتنا متحوّلة.",
     scroll: "مرّر ↓",
     jobCard: {
       title: "بطاقة العمل · ‎#0427",

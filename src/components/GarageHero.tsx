@@ -4,13 +4,13 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { calloutPlace } from "@/garage/callout";
 import { createDebugHud } from "@/garage/debugHud";
-import { isPhoneDevice, type Level, levelFromHints, readHints, readRemembered, remember, startLevel } from "@/garage/device";
+import { isPhoneDevice, type Level, PHONE_QUERY, levelFromHints, readHints, readRemembered, remember, startLevel } from "@/garage/device";
 import type { AnchorId } from "@/garage/heroCar";
 import type { Garage } from "@/garage/scene";
 import { tierFromQuery } from "@/garage/scene/quality";
 import { createSoundEngine, type SoundEngine } from "@/garage/sound/engine";
 import { follow } from "@/garage/scroll";
-import { type GarageState, stateAt } from "@/garage/timeline";
+import { type GarageState, showcaseAt, stateAt } from "@/garage/timeline";
 import { garage as shop } from "@/config/garage";
 import { type Locale, localeDir } from "@/i18n/config";
 import { getStrings, type Strings } from "@/i18n/strings";
@@ -23,6 +23,8 @@ const STILL_OF_BAY = [0, 0, 0, 0, 1, 1, 2];
 const STILLS = ["arrival", "paint", "reveal"] as const;
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const SOUND_KEY = "tt-sound";
+/** seconds for one turn round the car in the phone hero's showcase */
+const SHOWCASE_LOOP_S = 24;
 
 function readSoundPref() {
   try {
@@ -91,6 +93,11 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
     const portrait = () => innerHeight > innerWidth;
     const rtl = document.dir === "rtl";
     const hud = createDebugHud(location.search);
+    // phones get a one-screen hero (the track is one screen tall there, in CSS): the finished car circling on
+    // its own, driven by time, under the headline; desktops get the scroll story
+    const phoneHero = matchMedia(PHONE_QUERY);
+    let loop = 0;
+    const headline = stateAt(0, { portrait: true });
     let scene: Garage | null = null;
     let live = false;
     let raf = 0;
@@ -184,15 +191,27 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
       lastTarget = target;
       p = step.p;
       if (step.jumped) soundP = null;
-      const s = stateAt(p, { portrait: portrait(), rtl });
-      overlays(s, p);
-      if (live && scene) {
-        scene.apply(s, { jumped: step.jumped });
-        scene.render();
+      if (phoneHero.matches) {
+        loop += dt / SHOWCASE_LOOP_S;
+        const s = showcaseAt(loop, { portrait: portrait(), rtl });
+        overlays(headline, 0); // the headline card only: no job card, no callouts
+        if (live && scene) {
+          scene.apply(s);
+          scene.render();
+        }
+        sound.current?.frame(soundP, 1, s);
+        soundP = 1;
+      } else {
+        const s = stateAt(p, { portrait: portrait(), rtl });
+        overlays(s, p);
+        if (live && scene) {
+          scene.apply(s, { jumped: step.jumped });
+          scene.render();
+        }
+        // the stills show a parked car: no engine note in still mode
+        sound.current?.frame(soundP, p, live ? s : { ...s, carSpeed: 0 });
+        soundP = p;
       }
-      // the stills show a parked car: no engine note in still mode
-      sound.current?.frame(soundP, p, live ? s : { ...s, carSpeed: 0 });
-      soundP = p;
       raf = visible && !document.hidden ? requestAnimationFrame(tick) : 0;
       if (!raf) {
         soundP = null;
@@ -311,7 +330,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
   );
 
   return (
-    <section ref={track} data-garage-track data-mode="still" className="relative" style={{ height: "1100svh" }} aria-label={g.title}>
+    <section ref={track} data-garage-track data-mode="still" className="relative h-[1100svh] phone:h-svh" aria-label={g.title}>
       <div className="sticky top-0 h-svh overflow-hidden bg-[#0b0f18]">
         {/* stills: the whole hero without WebGL, and the first paint while the scene loads */}
         {STILLS.map((name, i) => (
@@ -322,6 +341,9 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
             style={{ opacity: i === 0 ? 1 : 0 }}
           >
             {/* only the arrival loads up front (the first paint); the others when still mode needs them (loadStill) */}
+            {/* the phone hero shows the finished car: its first paint (and fallback) is the reveal */}
+            {i === 0 && <source media="(pointer: coarse) and (max-width: 767px) and (orientation: portrait)" srcSet={tall("reveal")} />}
+            {i === 0 && <source media={PHONE_QUERY} srcSet={wide("reveal")} />}
             <source media="(orientation: portrait)" srcSet={i === 0 ? tall(name) : undefined} data-srcset={i === 0 ? undefined : tall(name)} />
             <img
               src={i === 0 ? wide(name) : undefined}
@@ -355,7 +377,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
         ))}
 
         {/* job card; on phones a thin row of six segments, so it does not cover the car */}
-        <ol className="absolute inset-x-4 top-[4.5rem] z-10 flex gap-1.5 roomy:inset-x-auto roomy:end-8 roomy:top-24 roomy:block roomy:w-56 roomy:rounded-xl roomy:border roomy:border-line roomy:bg-ink-900/75 roomy:p-4 roomy:text-[13px] roomy:backdrop-blur-md">
+        <ol className="absolute inset-x-4 top-[4.5rem] z-10 flex gap-1.5 phone:hidden roomy:inset-x-auto roomy:end-8 roomy:top-24 roomy:block roomy:w-56 roomy:rounded-xl roomy:border roomy:border-line roomy:bg-ink-900/75 roomy:p-4 roomy:text-[13px] roomy:backdrop-blur-md">
           <li className="sr-only mb-2 font-mono text-[10px] uppercase tracking-[0.24em] text-mist roomy:not-sr-only roomy:block">{g.jobCard.title}</li>
           {g.jobCard.items.map((item, i) => (
             <li
@@ -407,7 +429,8 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
         >
           <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-accent">{g.eyebrow}</p>
           <h1 className="mt-4 max-w-[17ch] font-display text-[clamp(2.1rem,5.4vw,4.4rem)] font-light leading-[1.04] tracking-[-0.02em] text-snow">{g.title}</h1>
-          <p className="mt-4 max-w-md text-[15px] leading-relaxed text-mist">{g.lead}</p>
+          <p className="mt-4 max-w-md text-[15px] leading-relaxed text-mist phone:hidden">{g.lead}</p>
+          <p className="mt-4 hidden max-w-md text-[15px] leading-relaxed text-mist phone:block">{g.leadPhone}</p>
           {cta}
           <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.3em] text-mist">{g.scroll}</p>
         </div>
@@ -439,7 +462,7 @@ export function GarageHero({ locale, t }: { locale: Locale; t: Strings }) {
           </article>
         ))}
 
-        <div ref={bar} className="absolute inset-x-0 bottom-0 z-10 h-0.5 origin-left scale-x-0 bg-accent shadow-[0_0_12px_var(--accent)] rtl:origin-right" />
+        <div ref={bar} className="absolute inset-x-0 bottom-0 z-10 h-0.5 phone:hidden origin-left scale-x-0 bg-accent shadow-[0_0_12px_var(--accent)] rtl:origin-right" />
       </div>
     </section>
   );

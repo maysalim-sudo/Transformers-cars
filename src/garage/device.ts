@@ -36,6 +36,9 @@ export function startLevel(checked: Level, remembered: Remembered | null, now: n
   return rank(cap) > rank(checked) ? cap : checked;
 }
 
+/** The same phone test as a media query, for CSS and matchMedia (keep in step with the `phone` variant in globals.css). */
+export const PHONE_QUERY = "(pointer: coarse) and (max-width: 767px), (pointer: coarse) and (max-height: 767px)";
+
 /**
  * A phone, whichever way it is held: a touch screen whose short side is under 768 px. This is about the
  * hardware, so it never looks at the window (a narrow desktop window is still a desktop, a landscape phone a phone).

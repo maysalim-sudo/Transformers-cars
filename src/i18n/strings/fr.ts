@@ -187,6 +187,8 @@ const fr: Strings = {
     eyebrow: "Garage · Showroom · Sousse",
     title: "Entrée d'origine. Sortie transformée.",
     lead: "Faites défiler pour suivre une voiture dans notre atelier, baie par baie, jusqu'au showroom.",
+    // phones get a one-screen hero (the car circling in the showroom), not the scroll story
+    leadPhone: "Jantes, assiette, kit, peinture, vitres : chaque voiture sort de notre atelier transformée.",
     scroll: "Défiler ↓",
     jobCard: {
       title: "Fiche atelier · #0427",
